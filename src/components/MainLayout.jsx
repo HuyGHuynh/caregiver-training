@@ -42,7 +42,20 @@ const Header = ({ user, currentPage, onNavigate }) => (
             <button className="search-btn">🔍</button>
           </div>
           <div className="user-menu">
-            <div className="user-avatar">{user?.name?.[0] || 'U'}</div>
+            <button 
+              className="user-avatar-btn"
+              onClick={() => onNavigate('profile')}
+              title="View Profile"
+            >
+              <div className="user-avatar">{user?.name?.[0] || 'U'}</div>
+            </button>
+            <button 
+              className="sign-out-btn"
+              onClick={() => onNavigate('login')}
+              title="Sign Out"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </div>
