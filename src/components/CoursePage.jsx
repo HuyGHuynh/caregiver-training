@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { fetchQuestions } from '../services/api';
 import './CoursePage.css';
 
 const LessonItem = ({ lesson, courseProgress, onStartLesson }) => {
@@ -119,9 +120,31 @@ const CourseNavigation = ({ modules, activeModule, onModuleChange }) => (
 
 const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
   const [activeModule, setActiveModule] = useState(1);
+  const [lesson11Questions, setLesson11Questions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
+
+  // Fetch questions for lesson 1.1 on mount
+  useEffect(() => {
+    const loadQuestions = async () => {
+      setLoading(true);
+      try {
+        const questions = await fetchQuestions({ subsection: '1.1' });
+        setLesson11Questions(questions);
+        console.log('Loaded questions:', questions);
+      } catch (error) {
+        console.error('Error loading questions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!isIntermediateCourse) {
+      loadQuestions();
+    }
+  }, [isIntermediateCourse]);
   
   // Mock data - replace with real data
   const mockCourse = {
@@ -372,48 +395,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       points: 75,
       completed: true,
       isAvailable: true,
-      quiz: [
-        {
-          question: "Dementia is best defined as:",
-          options: [
-            "A normal part of aging",
-            "A disease caused only by stress",
-            "A group of symptoms that affect thinking and daily functioning",
-            "A type of depression"
-          ],
-          answer: "C"
-        },
-        {
-          question: "Alzheimer's disease is:",
-          options: [
-            "The same thing as dementia",
-            "A type/cause of dementia and the most common one",
-            "A temporary memory problem",
-            "Only caused by lack of sleep"
-          ],
-          answer: "B"
-        },
-        {
-          question: "Which statement about \"stages\" of dementia is most accurate?",
-          options: [
-            "Stages predict the exact timeline for everyone",
-            "Stages are general guides; symptoms and speed vary by person",
-            "Stages are the same as test scores",
-            "Stages only matter for research, not caregiving"
-          ],
-          answer: "B"
-        },
-        {
-          question: "Which example suggests more than normal aging and may indicate dementia?",
-          options: [
-            "Occasionally forgetting a name but remembering later",
-            "Misplacing keys sometimes",
-            "Getting lost in a familiar place",
-            "Taking longer to learn a new app"
-          ],
-          answer: "C"
-        }
-      ]
+      quiz: lesson11Questions
     },
     {
       id: 2,
@@ -555,6 +537,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
 
   return (
     <div className="course-page">
+    {loading && <div className="loading-indicator">Loading questions...</div>}
       <CourseHeader course={mockCourse} progress={mockProgress} />
       
       <div className="course-content">
