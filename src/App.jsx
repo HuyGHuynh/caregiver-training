@@ -1,18 +1,25 @@
 import { useState } from 'react'
-import { MainLayout, HomePage, CoursePage, CoursesPage, LessonPage, ProgressDashboard, LoginPage, UserProfile, RegisterPage } from './components'
+import { useAuth } from './contexts/AuthContext'
+import { MainLayout, HomePage, CoursePage, CoursesPage, LessonPage, ProgressDashboard, UserProfile } from './components'
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
 import './App.css'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login'); // 'login', 'register', 'home', 'course', 'lesson', 'progress', 'profile'
+  const [currentPage, setCurrentPage] = useState('home');
+  const [showLogin, setShowLogin] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
+  
+  const { currentUser, logout } = useAuth();
+
   const [user, setUser] = useState({
-    name: 'Alex Johnson',
-    email: 'demo@eduplatform.com',
-    phone: '+1 (555) 123-4567',
-    streak: 7,
-    completedLessons: 24,
-    points: 1250
+    name: currentUser?.displayName || 'User',
+    email: currentUser?.email || '',
+    streak: 0,
+    completedLessons: 0,
+    points: 0,
+    joinDate: new Date().toISOString().split('T')[0]
   });
 
   const handleCourseSelect = (course) => {
@@ -25,14 +32,6 @@ function App() {
     setCurrentPage('lesson');
   };
 
-  const handleLoginSuccess = () => {
-    setCurrentPage('home');
-  };
-
-  const handleNavigateToRegister = () => {
-    setCurrentPage('register');
-  };
-
   const handleRegisterSuccess = (userData) => {
     // Update user data with registration info
     setUser(prevUser => ({
@@ -43,32 +42,44 @@ function App() {
       completedLessons: 0,
       points: 0
     }));
-    setCurrentPage('home');
+    // After successful registration, user is auto-logged in by Firebase
+    setShowLogin(true);
   };
 
-  const handleBackToLogin = () => {
-    setCurrentPage('login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setCurrentPage('home');
+      console.log('✅ Logged out');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
+  if (!currentUser) {
+    return showLogin ? (
+      <LoginPage 
+        onLoginSuccess={() => console.log('Logged in')}
+        onNavigateToRegister={() => setShowLogin(false)}
+      />
+    ) : (
+      <RegisterPage
+        onRegisterSuccess={handleRegisterSuccess}
+        onBackToLogin={() => setShowLogin(true)}
+      />
+    );
+  }
+  
   return (
     <div className="App">
-      {currentPage === 'login' ? (
-        <LoginPage 
-          onLoginSuccess={handleLoginSuccess}
-          onNavigateToRegister={handleNavigateToRegister}
-        />
-      ) : currentPage === 'register' ? (
-        <RegisterPage 
-          onRegisterSuccess={handleRegisterSuccess}
-          onBackToLogin={handleBackToLogin}
-        />
-      ) : currentPage === 'profile' ? (
+      {currentPage === 'profile' ? (
         <UserProfile user={user} onBack={() => setCurrentPage('home')} />
       ) : (
         <MainLayout 
           user={user} 
           currentPage={currentPage} 
           onNavigate={setCurrentPage}
+          onSignOut={handleLogout}
         >
           <main className="app-main">
             {currentPage === 'home' && <HomePage user={user} onCourseSelect={handleCourseSelect} />}

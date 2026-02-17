@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../config/firebase';
 import './RegisterPage.css';
 
 const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
@@ -21,7 +23,6 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -45,30 +46,6 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Phone validation
-    if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
-    }
-
-    // Date of birth validation
-    if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = 'Date of birth is required';
-    } else {
-      const birthDate = new Date(formData.dateOfBirth);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      if (age < 13) {
-        newErrors.dateOfBirth = 'You must be at least 13 years old';
-      }
-    }
-
-    // Location validation
-    if (!formData.location.trim()) {
-      newErrors.location = 'Location is required';
     }
 
     // Password validation
@@ -99,17 +76,30 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      console.log('Registration attempt:', formData);
-      
-      // Simulate delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Here you would typically call your registration API
-      console.log('Registration successful for:', formData.email);
+      // ✅ Create Firebase user
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      // ✅ Update user profile with display name
+      await updateProfile(userCredential.user, {
+        displayName: formData.name
+      });
+
+      console.log('✅ Registration successful:', {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName
+      });
+
+      // TODO: Save additional user info (phone, dob, location, bio) to your backend
+      // You would call your backend API here to store this info with the Firebase UID
       
       if (onRegisterSuccess) {
         onRegisterSuccess({
+          uid: userCredential.user.uid,
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -120,8 +110,20 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
       }
       
     } catch (error) {
-      console.error('Registration error:', error);
-      setErrors({ general: 'Registration failed. Please try again.' });
+      console.error('❌ Registration error:', error);
+      
+      // Handle Firebase errors
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please login instead.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address format.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please use a stronger password.';
+      }
+      
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -129,8 +131,8 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
 
   const handleGoogleSignUp = () => {
     console.log('Google sign up clicked');
-    // Here you would implement Google OAuth for registration
-    alert('Google sign up functionality would be implemented here!');
+    // TODO: Implement Google OAuth with Firebase
+    alert('Google sign up will be implemented with Firebase Auth!');
   };
 
   return (
@@ -143,7 +145,7 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
             </button>
             <h1 className="heading-2">Create Your Account</h1>
             <p className="body-base text-secondary">
-              Join EduPlatform and start your learning journey today
+              Join our platform and start your learning journey today
             </p>
           </div>
 
@@ -201,7 +203,7 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="phone">
-                    Phone Number *
+                    Phone Number (Optional)
                   </label>
                   <input
                     type="tel"
@@ -210,7 +212,7 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     className={`form-input ${errors.phone ? 'error' : ''}`}
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="Enter your phone number"
                     disabled={isLoading}
                   />
                   {errors.phone && (
@@ -220,7 +222,7 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="dateOfBirth">
-                    Date of Birth *
+                    Date of Birth (Optional)
                   </label>
                   <input
                     type="date"
@@ -239,7 +241,7 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="location">
-                  Location *
+                  Location (Optional)
                 </label>
                 <input
                   type="text"
@@ -248,7 +250,7 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
                   value={formData.location}
                   onChange={handleInputChange}
                   className={`form-input ${errors.location ? 'error' : ''}`}
-                  placeholder="City, State/Country"
+                  placeholder="City, State/Province, Country"
                   disabled={isLoading}
                 />
                 {errors.location && (
@@ -265,11 +267,14 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
                   name="bio"
                   value={formData.bio}
                   onChange={handleInputChange}
-                  className="form-textarea"
-                  placeholder="Tell us about yourself and your learning goals..."
+                  className={`form-input ${errors.bio ? 'error' : ''}`}
+                  placeholder="Tell us a little about yourself..."
                   rows="3"
                   disabled={isLoading}
                 />
+                {errors.bio && (
+                  <span className="error-message">{errors.bio}</span>
+                )}
               </div>
             </div>
 
@@ -318,69 +323,48 @@ const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
               </div>
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="terms-section">
-              <label className="terms-checkbox">
-                <input type="checkbox" required disabled={isLoading} />
-                <span className="checkmark"></span>
-                <span className="terms-text">
-                  I agree to the <button type="button" className="link-btn">Terms of Service</button> and{' '}
-                  <button type="button" className="link-btn">Privacy Policy</button>
-                </span>
-              </label>
-            </div>
-
-            {/* Registration Button */}
+            {/* Submit Button */}
             <button
               type="submit"
-              className={`btn btn-primary btn-large register-btn ${isLoading ? 'loading' : ''}`}
+              className="btn btn-primary btn-large"
               disabled={isLoading}
             >
-              {isLoading ? (
-                <>
-                  <span className="loading-spinner"></span>
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
 
             {/* Divider */}
-            <div className="register-divider">
-              <span className="divider-text">or</span>
+            <div className="divider">
+              <span>or</span>
             </div>
 
-            {/* Google Sign Up Button */}
+            {/* Google Sign Up */}
             <button
               type="button"
-              className="btn btn-secondary btn-large google-signup-btn"
+              className="btn btn-secondary btn-large google-btn"
               onClick={handleGoogleSignUp}
               disabled={isLoading}
             >
               <svg className="google-icon" viewBox="0 0 24 24" width="20" height="20">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Sign Up with Google
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+              Sign up with Google
             </button>
-          </form>
 
-          {/* Login Link */}
-          <div className="login-prompt">
-            <p className="body-small text-secondary">
+            {/* Login Link */}
+            <div className="login-link">
               Already have an account?{' '}
-              <button 
-                type="button" 
-                className="login-link"
+              <button
+                type="button"
+                className="link-btn"
                 onClick={onBackToLogin}
               >
                 Sign In
               </button>
-            </p>
-          </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import './MainLayout.css';
 
-const Header = ({ user, currentPage, onNavigate }) => (
+const Header = ({ user, currentPage, onNavigate, onSignOut }) => (
   <header className="main-header">
     <div className="container">
       <div className="header-content">
@@ -51,7 +51,7 @@ const Header = ({ user, currentPage, onNavigate }) => (
             </button>
             <button 
               className="sign-out-btn"
-              onClick={() => onNavigate('login')}
+              onClick={onSignOut}
               title="Sign Out"
             >
               Sign Out
@@ -88,10 +88,10 @@ const Sidebar = ({ isOpen, onToggle }) => (
   </aside>
 );
 
-const MainLayout = ({ children, user, sidebarOpen = false, onSidebarToggle = () => {}, currentPage, onNavigate }) => {
+const MainLayout = ({ children, user, sidebarOpen = false, onSidebarToggle = () => {}, currentPage, onNavigate, onSignOut }) => {
   return (
     <div className="main-layout">
-      <Header user={user} currentPage={currentPage} onNavigate={onNavigate} />
+      <Header user={user} currentPage={currentPage} onNavigate={onNavigate} onSignOut={onSignOut}/>
       <div className="layout-body">
         <Sidebar isOpen={sidebarOpen} onToggle={onSidebarToggle} />
         <main className="main-content">
