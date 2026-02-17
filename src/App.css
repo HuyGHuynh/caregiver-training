@@ -1,0 +1,57 @@
+.App {
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 1rem;
+}
+
+.app-nav {
+  display: none; /* Navigation moved to header */
+}
+
+.app-nav button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid var(--primary-blue, #3b82f6);
+  border-radius: 25px;
+  background: var(--bg-primary, #ffffff);
+  color: var(--primary-blue, #3b82f6);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.app-nav button:hover {
+  background: var(--primary-blue, #3b82f6);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.app-nav button.active {
+  background: var(--primary-blue, #3b82f6);
+  color: white;
+  border-color: var(--primary-blue, #3b82f6);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.app-main {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .App {
+    padding: 0.5rem;
+  }
+  
+  .app-nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem; 
+  }
+  
+  .app-nav button {
+    width: 200px;
+  }
+}
