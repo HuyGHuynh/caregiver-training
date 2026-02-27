@@ -81,6 +81,119 @@
   color: var(--green-success);
   font-size: var(--font-size-sm);
 }
+
+/* Speaker Button Styles */
+.speaker-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+}
+
+.speaker-button:hover {
+  background: var(--bg-light);
+  color: var(--primary-blue);
+  transform: scale(1.1);
+}
+
+.speaker-button:focus {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
+}
+
+.speaker-button.speaking {
+  color: var(--primary-blue);
+  animation: pulse 1.5s infinite;
+}
+
+.speaker-button.loading {
+  color: var(--text-secondary);
+}
+
+.speaker-button.error {
+  color: #ff6b6b;
+}
+
+.speaker-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Text with Speaker Layout */
+.text-with-speaker {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.text-with-speaker .text-content {
+  flex: 1;
+}
+
+.text-with-speaker .speaker-button {
+  flex-shrink: 0;
+  margin-top: 2px; /* Align with text baseline */
+  z-index: 10;
+  position: relative;
+  pointer-events: auto;
+}
+
+.feedback-speaker {
+  z-index: 15 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+/* Choice Option Container */
+.choice-option-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.choice-option-container .choice-option {
+  flex: 1;
+}
+
+.choice-option-container .option-speaker {
+  flex-shrink: 0;
+}
+
+.option-content {
+  display: block;
+  width: 100%;
+}
   padding: var(--spacing-xl) 0;
   border-bottom: 1px solid var(--border-light);
   margin-bottom: var(--spacing-xl);

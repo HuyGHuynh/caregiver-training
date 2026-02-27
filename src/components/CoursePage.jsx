@@ -118,13 +118,17 @@ const CourseNavigation = ({ modules, activeModule, onModuleChange }) => (
   </div>
 );
 
-const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
+const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
   const [activeModule, setActiveModule] = useState(1);
   const [lesson11Questions, setLesson11Questions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
+  
+  // Calculate user progress dynamically
+  const userCompletedLessons = user?.completedLessons || 0;
+  const isNewUser = userCompletedLessons === 0;
 
   // Fetch questions for lesson 1.1 on mount
   useEffect(() => {
@@ -163,11 +167,19 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
   };
 
   const mockProgress = {
-    percentage: isIntermediateCourse ? 25 : 45,
-    completed: isIntermediateCourse ? 3 : 5,
-    remaining: isIntermediateCourse ? 10 : 6,
-    pointsEarned: isIntermediateCourse ? 275 : 425,
-    currentLesson: isIntermediateCourse ? 4 : 7
+    percentage: isNewUser ? 0 : (isIntermediateCourse ? Math.min(Math.max((userCompletedLessons - 11) * 8, 0), 100) : Math.min(userCompletedLessons * 9, 100)),
+    completed: isNewUser ? 0 : (isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : Math.min(userCompletedLessons, 11)),
+    remaining: isIntermediateCourse ? (13 - Math.max(userCompletedLessons - 11, 0)) : (11 - Math.min(userCompletedLessons, 11)),
+    pointsEarned: isNewUser ? 0 : (isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) * 100 : Math.min(userCompletedLessons, 11) * 75),
+    currentLesson: isNewUser ? 1 : (isIntermediateCourse ? Math.max(userCompletedLessons - 11 + 1, 1) : Math.min(userCompletedLessons + 1, 11))
+  };
+
+  // Calculate module completion based on user progress
+  const calculateModuleCompletion = (moduleId, totalLessonsInModule, startingLessonNumber) => {
+    if (isNewUser) return 0;
+    const relevantLessons = isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : userCompletedLessons;
+    if (relevantLessons <= startingLessonNumber - 1) return 0;
+    return Math.min(relevantLessons - startingLessonNumber + 1, totalLessonsInModule);
   };
 
   const mockModules = isIntermediateCourse ? [
@@ -175,40 +187,54 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       id: 1,
       title: 'Foundational Adjustments (Easy)',
       totalLessons: 3,
-      completedLessons: 3
+      completedLessons: calculateModuleCompletion(1, 3, 1)
     },
     {
       id: 2,
       title: 'Active Behavioral Management (Intermediate)',
       totalLessons: 5,
-      completedLessons: 0
+      completedLessons: calculateModuleCompletion(2, 5, 4)
     },
     {
       id: 3,
       title: 'Complex Coordination & Risk (Advanced)',
       totalLessons: 5,
-      completedLessons: 0
+      completedLessons: calculateModuleCompletion(3, 5, 9)
     }
   ] : [
     {
       id: 1,
       title: 'Foundational Knowledge and Early-Stage Care (Basic)',
       totalLessons: 4,
-      completedLessons: 3
+      completedLessons: calculateModuleCompletion(1, 4, 1)
     },
     {
       id: 2,
       title: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
       totalLessons: 4,
-      completedLessons: 2
+      completedLessons: calculateModuleCompletion(2, 4, 5)
     },
     {
       id: 3,
       title: 'Advanced Care and Specialized Interventions (Advanced)',
       totalLessons: 3,
-      completedLessons: 0
+      completedLessons: calculateModuleCompletion(3, 3, 9)
     }
   ];
+
+  // Helper function to determine if a lesson is completed based on user progress
+  const isLessonCompleted = (lessonNumber) => {
+    if (isNewUser) return false;
+    const relevantProgress = isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : userCompletedLessons;
+    return relevantProgress >= lessonNumber;
+  };
+
+  // Helper function to determine if a lesson is available
+  const isLessonAvailable = (lessonNumber) => {
+    if (lessonNumber === 1) return true; // First lesson always available
+    const relevantProgress = isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : userCompletedLessons;
+    return relevantProgress >= lessonNumber - 1; // Available if previous lesson is completed
+  };
 
   const mockLessons = isIntermediateCourse ? [
     // Module 1: Foundational Adjustments (Easy)
@@ -221,8 +247,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Interactive Lesson',
       duration: 30,
       points: 100,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(1),
+      isAvailable: isLessonAvailable(1),
       skills: ['Activity Planning', 'Cognitive Assessment', 'Engagement Strategies']
     },
     {
@@ -234,8 +260,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Video + Practice',
       duration: 35,
       points: 125,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(2),
+      isAvailable: isLessonAvailable(2),
       skills: ['Advanced Communication', 'Middle-Stage Care', 'Verbal Techniques']
     },
     {
@@ -247,8 +273,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Case Studies',
       duration: 25,
       points: 75,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(3),
+      isAvailable: isLessonAvailable(3),
       skills: ['Sundowning Management', 'Behavioral Patterns', 'Environmental Modifications']
     },
     // Module 2: Active Behavioral Management (Intermediate)
@@ -261,8 +287,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Framework Training',
       duration: 40,
       points: 150,
-      completed: false,
-      isAvailable: true,
+      completed: isLessonCompleted(4),
+      isAvailable: isLessonAvailable(4),
       skills: ['BPSD Framework', 'Trigger Identification', 'Response Planning']
     },
     {
@@ -274,8 +300,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Practical Training',
       duration: 45,
       points: 175,
-      completed: false,
-      isAvailable: true,
+      completed: isLessonCompleted(5),
+      isAvailable: isLessonAvailable(5),
       skills: ['Care Resistance', 'Personal Care', 'Dignity Preservation']
     },
     {
@@ -287,8 +313,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Safety Training',
       duration: 35,
       points: 125,
-      completed: false,
-      isAvailable: false,
+      completed: isLessonCompleted(6),
+      isAvailable: isLessonAvailable(6),
       skills: ['Wandering Management', 'Safety Planning', 'Environmental Safety']
     },
     {
@@ -393,8 +419,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       description: 'Identifying dementia and Alzheimer\'s, recognizing that stages are general guides, and understanding that symptoms vary by person.',
       duration: 25,
       points: 75,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(1),
+      isAvailable: isLessonAvailable(1),
       quiz: lesson11Questions
     },
     {
@@ -406,8 +432,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Interactive Lesson',
       duration: 20,
       points: 50,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(2),
+      isAvailable: isLessonAvailable(2),
       skills: ['Self-Care', 'Support Systems', 'Stress Management']
     },
     {
@@ -419,8 +445,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Video + Practice',
       duration: 30,
       points: 100,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(3),
+      isAvailable: isLessonAvailable(3),
       skills: ['Communication', 'Verbal Techniques', 'Non-verbal Cues']
     },
     {
@@ -432,8 +458,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Reading + Assessment',
       duration: 35,
       points: 125,
-      completed: false,
-      isAvailable: true,
+      completed: isLessonCompleted(4),
+      isAvailable: isLessonAvailable(4),
       skills: ['Care Planning', 'Independence', 'Future Planning']
     },
     // Module 2: Intermediate Care Strategies: Daily Routines and Safety (Intermediate)
@@ -446,8 +472,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Interactive Lesson',
       duration: 25,
       points: 75,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(5),
+      isAvailable: isLessonAvailable(5),
       skills: ['Daily Routines', 'Structure', 'Consistency']
     },
     {
@@ -459,8 +485,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Video + Practice',
       duration: 30,
       points: 100,
-      completed: true,
-      isAvailable: true,
+      completed: isLessonCompleted(6),
+      isAvailable: isLessonAvailable(6),
       skills: ['ADLs', 'Task Simplification', 'Assistance Techniques']
     },
     {
@@ -472,8 +498,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Assessment + Checklist',
       duration: 40,
       points: 150,
-      completed: false,
-      isAvailable: true,
+      completed: isLessonCompleted(7),
+      isAvailable: isLessonAvailable(7),
       skills: ['Home Safety', 'Environmental Design', 'Risk Assessment']
     },
     {
@@ -485,8 +511,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Case Studies',
       duration: 45,
       points: 175,
-      completed: false,
-      isAvailable: true,
+      completed: isLessonCompleted(8),
+      isAvailable: isLessonAvailable(8),
       skills: ['BPSD', 'Behavioral Management', 'Intervention Strategies']
     },
     // Module 3: Advanced Care and Specialized Interventions (Advanced)
@@ -499,8 +525,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {} }) => {
       type: 'Expert Training',
       duration: 50,
       points: 200,
-      completed: false,
-      isAvailable: false,
+      completed: isLessonCompleted(9),
+      isAvailable: isLessonAvailable(9),
       skills: ['Physical Care', 'Medical Management', 'Complex Needs']
     },
     {
