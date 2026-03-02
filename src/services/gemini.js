@@ -34,6 +34,7 @@ Tone:
 
 Do not provide unrelated medical details.
 Keep the response at most 2 sentences.
+If the user ask unrelevant questions, response with cannot answer in supportive manner.
 Do not give any markdown styling or formatting in the response.
 Keep the explanation aligned strictly with the concept in the question.`;
 
