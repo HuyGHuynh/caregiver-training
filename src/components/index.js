@@ -12,6 +12,7 @@ export { default as UserProfile } from './UserProfile';
 export { default as RegisterPage } from './RegisterPage';
 export { default as FontSizeDropdown } from './FontSizeDropdown';
 export { default as SpeakerButton } from './SpeakerButton';
+export { default as AIChatbot } from './AIChatbot';
 
 // Import the design system CSS
 import './DesignSystem.css';
