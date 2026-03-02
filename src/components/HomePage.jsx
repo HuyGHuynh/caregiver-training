@@ -49,32 +49,46 @@ const CourseCard = ({ course, onCourseSelect }) => (
   </div>
 );
 
-const HeroSection = ({ user }) => (
-  <section className="hero-section">
-    <div className="hero-content">
-      <h1 className="hero-title">
-        Welcome back, {user?.name || 'Student'}! 👋
-      </h1>
-      <p className="hero-subtitle">
-        Master dementia caregiving with evidence-based courses designed by healthcare professionals.
-      </p>
-      <div className="hero-stats">
-        <div className="hero-stat">
-          <div className="stat-number">{user?.streak || 0}</div>
-          <div className="stat-label">Day Streak</div>
+const HeroSection = ({ user }) => {
+  const isNewUser = !user?.completedLessons || user.completedLessons === 0;
+  
+  return (
+    <section className="hero-section">
+      <div className="hero-content">
+        <h1 className="hero-title">
+          {isNewUser ? `Welcome to EduPlatform, ${user?.name || 'Student'}! 👋` : `Welcome back, ${user?.name || 'Student'}! 👋`}
+        </h1>
+        <p className="hero-subtitle">
+          {isNewUser 
+            ? 'Start your journey in dementia caregiving with evidence-based courses designed by healthcare professionals.'
+            : 'Continue mastering dementia caregiving with evidence-based courses designed by healthcare professionals.'
+          }
+        </p>
+        <div className="hero-stats">
+          <div className="hero-stat">
+            <div className="stat-number">{user?.streak || 0}</div>
+            <div className="stat-label">Day Streak</div>
+          </div>
+          <div className="hero-stat">
+            <div className="stat-number">{user?.completedLessons || 0}</div>
+            <div className="stat-label">Lessons Completed</div>
+          </div>
+          <div className="hero-stat">
+            <div className="stat-number">{user?.points || 0}</div>
+            <div className="stat-label">Points Earned</div>
+          </div>
         </div>
-        <div className="hero-stat">
-          <div className="stat-number">{user?.completedLessons || 0}</div>
-          <div className="stat-label">Lessons Completed</div>
-        </div>
-        <div className="hero-stat">
-          <div className="stat-number">{user?.points || 0}</div>
-          <div className="stat-label">Points Earned</div>
-        </div>
+        {isNewUser && (
+          <div className="new-user-encouragement">
+            <p className="encouragement-text">
+              🎯 Ready to get started? Choose your first course below!
+            </p>
+          </div>
+        )}
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 const RecommendedSection = ({ courses, onCourseSelect, user }) => {
   // Determine which course to recommend based on user progress
@@ -148,6 +162,9 @@ const HomePage = ({ user, courses = [], categories = [], onCourseSelect }) => {
     ...user
   };
 
+  // Determine user progress dynamically
+  const isNewUser = !user?.completedLessons || user.completedLessons === 0;
+  
   const mockCourses = [
     {
       id: 1,
@@ -161,7 +178,7 @@ const HomePage = ({ user, courses = [], categories = [], onCourseSelect }) => {
       duration: '4-6 weeks',
       estimatedTime: '8-12 weeks',
       level: 'Beginner',
-      progress: 65,
+      progress: isNewUser ? 0 : Math.min((user?.completedLessons || 0) * 6, 100), // Dynamic progress based on user
       recommended: true
     },
     {
@@ -176,7 +193,7 @@ const HomePage = ({ user, courses = [], categories = [], onCourseSelect }) => {
       duration: '6-8 weeks',
       estimatedTime: '10-14 weeks',
       level: 'Intermediate',
-      progress: 0,
+      progress: isNewUser ? 0 : Math.max(0, Math.min(((user?.completedLessons || 0) - 11) * 8, 100)), // Starts after basic course
       recommended: true
     }
   ];

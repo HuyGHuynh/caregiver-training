@@ -1,4 +1,5 @@
 import React from 'react';
+import FontSizeDropdown from './FontSizeDropdown';
 import './MainLayout.css';
 
 const Header = ({ user, currentPage, onNavigate, onSignOut }) => (
@@ -41,6 +42,7 @@ const Header = ({ user, currentPage, onNavigate, onSignOut }) => (
             <input type="search" placeholder="Search courses..." className="search-input" />
             <button className="search-btn">🔍</button>
           </div>
+          <FontSizeDropdown />
           <div className="user-menu">
             <button 
               className="user-avatar-btn"

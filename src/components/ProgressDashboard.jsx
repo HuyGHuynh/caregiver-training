@@ -29,42 +29,78 @@ const StatsOverview = ({ stats }) => (
   </div>
 );
 
-const CurrentCourse = ({ course }) => (
-  <div className="current-course">
-    <h3 className="section-title">Currently Studying</h3>
-    <div className="course-card-current">
-      <div className="course-icon" style={{ background: course.color }}>
-        {course.icon}
-      </div>
-      <div className="course-info">
-        <h4 className="course-name">{course.title}</h4>
-        <div className="course-category">{course.category}</div>
-        <div className="progress-info">
-          <div className="progress-bar">
-            <div 
-              className="progress-fill" 
-              style={{ width: `${course.progress}%` }}
-            ></div>
+const CurrentCourse = ({ course, user }) => {
+  // If user has no completed lessons, show getting started message
+  if (!user?.completedLessons || user.completedLessons === 0) {
+    return (
+      <div className="current-course">
+        <h3 className="section-title">Getting Started</h3>
+        <div className="no-course-card">
+          <div className="no-course-icon">🎯</div>
+          <div className="no-course-content">
+            <h4 className="no-course-title">No courses started yet</h4>
+            <p className="no-course-description">
+              Begin your learning journey by selecting a course from our recommendations below.
+              Each course is designed to build your skills step by step.
+            </p>
+            <div className="no-course-stats">
+              <div className="stat-item">
+                <span className="stat-icon">📚</span>
+                <span className="stat-text">0 lessons completed</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-icon">🏆</span>
+                <span className="stat-text">0 courses finished</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-icon">⭐</span>
+                <span className="stat-text">0 points earned</span>
+              </div>
+            </div>
           </div>
-          <span className="progress-text">{course.progress}% complete</span>
-        </div>
-        <div className="course-stats">
-          <span className="stat">
-            <span className="stat-icon">📚</span>
-            {course.completedLessons}/{course.totalLessons} lessons
-          </span>
-          <span className="stat">
-            <span className="stat-icon">⏱️</span>
-            {course.estimatedTime}
-          </span>
         </div>
       </div>
-      <div className="course-status">
-        📚
+    );
+  }
+
+  // Show current course if user has progress
+  return (
+    <div className="current-course">
+      <h3 className="section-title">Currently Studying</h3>
+      <div className="course-card-current">
+        <div className="course-icon" style={{ background: course.color }}>
+          {course.icon}
+        </div>
+        <div className="course-info">
+          <h4 className="course-name">{course.title}</h4>
+          <div className="course-category">{course.category}</div>
+          <div className="progress-info">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${course.progress}%` }}
+              ></div>
+            </div>
+            <span className="progress-text">{course.progress}% complete</span>
+          </div>
+          <div className="course-stats">
+            <span className="stat">
+              <span className="stat-icon">📚</span>
+              {course.completedLessons}/{course.totalLessons} lessons
+            </span>
+            <span className="stat">
+              <span className="stat-icon">⏱️</span>
+              {course.estimatedTime}
+            </span>
+          </div>
+        </div>
+        <div className="course-status">
+          📚
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const WeeklyActivity = ({ activityData }) => {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -103,40 +139,78 @@ const WeeklyActivity = ({ activityData }) => {
   );
 };
 
-const Badges = ({ achievements }) => (
-  <div className="badges-section">
-    <h3 className="section-title">Your Badges</h3>
-    <div className="badges-grid">
-      {achievements.filter(achievement => achievement.unlocked).map(achievement => (
-        <div key={achievement.id} className="badge-item">
-          <div className="badge-icon">{achievement.icon}</div>
-          <div className="badge-info">
-            <h4 className="badge-name">{achievement.name}</h4>
-            <p className="badge-description">{achievement.description}</p>
-            <div className="badge-date">Earned {achievement.dateEarned}</div>
+const Badges = ({ achievements, user }) => {
+  const unlockedAchievements = achievements.filter(achievement => achievement.unlocked);
+  const upcomingAchievements = achievements.filter(achievement => !achievement.unlocked);
+
+  // Show different content for new users
+  if (!user?.completedLessons || user.completedLessons === 0) {
+    return (
+      <div className="badges-section">
+        <h3 className="section-title">Your Badges</h3>
+        <div className="no-badges-yet">
+          <div className="no-badges-icon">🏆</div>
+          <div className="no-badges-content">
+            <h4 className="no-badges-title">No badges earned yet</h4>
+            <p className="no-badges-description">
+              Complete lessons and courses to earn your first badges!
+            </p>
           </div>
         </div>
-      ))}
-    </div>
-    
-    {achievements.filter(achievement => !achievement.unlocked).length > 0 && (
-      <div className="upcoming-badges">
-        <h4>Next Badges to Earn</h4>
-        <div className="upcoming-badges-list">
-          {achievements.filter(achievement => !achievement.unlocked).slice(0, 2).map(achievement => (
-            <div key={achievement.id} className="upcoming-badge">
-              <div className="upcoming-badge-icon">{achievement.icon}</div>
-              <div className="upcoming-badge-info">
-                <span className="upcoming-badge-name">{achievement.name}</span>
-                <span className="upcoming-badge-requirement">{achievement.description}</span>
+        
+        <div className="upcoming-badges">
+          <h4>Badges to Earn</h4>
+          <div className="upcoming-badges-list">
+            {upcomingAchievements.slice(0, 3).map(achievement => (
+              <div key={achievement.id} className="upcoming-badge">
+                <div className="upcoming-badge-icon">{achievement.icon}</div>
+                <div className="upcoming-badge-info">
+                  <span className="upcoming-badge-name">{achievement.name}</span>
+                  <span className="upcoming-badge-requirement">{achievement.description}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-    )}
-  </div>
-);
+    );
+  }
+
+  return (
+    <div className="badges-section">
+      <h3 className="section-title">Your Badges</h3>
+      <div className="badges-grid">
+        {unlockedAchievements.map(achievement => (
+          <div key={achievement.id} className="badge-item">
+            <div className="badge-icon">{achievement.icon}</div>
+            <div className="badge-info">
+              <h4 className="badge-name">{achievement.name}</h4>
+              <p className="badge-description">{achievement.description}</p>
+              <div className="badge-date">Earned {achievement.dateEarned}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {upcomingAchievements.length > 0 && (
+        <div className="upcoming-badges">
+          <h4>Next Badges to Earn</h4>
+          <div className="upcoming-badges-list">
+            {upcomingAchievements.slice(0, 2).map(achievement => (
+              <div key={achievement.id} className="upcoming-badge">
+                <div className="upcoming-badge-icon">{achievement.icon}</div>
+                <div className="upcoming-badge-info">
+                  <span className="upcoming-badge-name">{achievement.name}</span>
+                  <span className="upcoming-badge-requirement">{achievement.description}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const RecentActivity = ({ recentLessons }) => (
   <div className="recent-activity">
@@ -192,13 +266,14 @@ const SkillsProgress = ({ skills }) => (
 const ProgressDashboard = ({ user }) => {
   const [timeRange, setTimeRange] = useState('thisWeek');
 
-  // Mock data
-  const mockStats = {
-    streak: 7,
-    lessonsCompleted: 24,
-    totalPoints: 1250
+  // Use actual user stats instead of mock data
+  const userStats = {
+    streak: user?.streak || 0,
+    lessonsCompleted: user?.completedLessons || 0,
+    totalPoints: user?.points || 0
   };
 
+  // Mock current course data - in a real app, this would come from user's enrolled courses
   const mockCurrentCourse = {
     id: 1,
     title: 'Basic Best Practices of Dementia Caregiving',
@@ -211,38 +286,10 @@ const ProgressDashboard = ({ user }) => {
     estimatedTime: '4-6 weeks'
   };
 
-  const mockCourses = [
-    {
-      id: 1,
-      title: 'Algebra Fundamentals',
-      category: 'Mathematics',
-      icon: '📊',
-      color: '#4285F4',
-      progress: 85,
-      status: 'in-progress'
-    },
-    {
-      id: 2,
-      title: 'Geometry Basics',
-      category: 'Mathematics',
-      icon: '📐',
-      color: '#00AF54',
-      progress: 100,
-      status: 'completed'
-    },
-    {
-      id: 3,
-      title: 'Introduction to Calculus',
-      category: 'Mathematics',
-      icon: '∫',
-      color: '#FF6B35',
-      progress: 0,
-      status: 'upcoming'
-    }
-  ];
+  // Mock activity data - would be based on user's actual learning activity
+  const mockActivityData = user?.completedLessons > 0 ? [45, 60, 30, 75, 90, 25, 0] : [0, 0, 0, 0, 0, 0, 0];
 
-  const mockActivityData = [45, 60, 30, 75, 90, 25, 0]; // Minutes per day
-
+  // Achievement badges - unlock based on actual user progress
   const mockAchievements = [
     {
       id: 1,
@@ -250,7 +297,7 @@ const ProgressDashboard = ({ user }) => {
       description: 'Complete your first dementia caregiving lesson',
       icon: '🌟',
       points: 50,
-      unlocked: true,
+      unlocked: (user?.completedLessons || 0) > 0,
       dateEarned: 'Jan 15, 2026'
     },
     {
@@ -259,7 +306,7 @@ const ProgressDashboard = ({ user }) => {
       description: 'Maintained 7-day learning streak',
       icon: '🔥',
       points: 100,
-      unlocked: true,
+      unlocked: (user?.streak || 0) >= 7,
       dateEarned: 'Feb 8, 2026'
     },
     {
@@ -268,7 +315,7 @@ const ProgressDashboard = ({ user }) => {
       description: 'Complete 25 lessons',
       icon: '📚',
       points: 200,
-      unlocked: false
+      unlocked: (user?.completedLessons || 0) >= 25
     },
     {
       id: 4,
@@ -276,11 +323,12 @@ const ProgressDashboard = ({ user }) => {
       description: 'Complete your first full course',
       icon: '👑',
       points: 500,
-      unlocked: false
+      unlocked: false // Would check if user completed any full course
     }
   ];
 
-  const mockRecentLessons = [
+  // Recent lessons - empty for new users
+  const mockRecentLessons = user?.completedLessons > 0 ? [
     {
       id: 1,
       title: 'Communication Strategies',
@@ -296,39 +344,35 @@ const ProgressDashboard = ({ user }) => {
       courseIcon: '🏥',
       completedAt: '1 day ago',
       score: 78
-    },
-    {
-      id: 3,
-      title: 'Creating Safe Environments',
-      courseName: 'Basic Best Practices of Dementia Caregiving',
-      courseIcon: '🏥',
-      completedAt: '2 days ago',
-      score: 95
     }
-  ];
+  ] : [];
 
+  // Skills - start at 0 for new users
   const mockSkills = [
-    { name: 'Communication', level: 3, progress: 75 },
-    { name: 'Behavioral Management', level: 2, progress: 45 },
-    { name: 'Person-Centered Care', level: 4, progress: 90 },
-    { name: 'Safety Assessment', level: 1, progress: 25 }
+    { name: 'Communication', level: Math.min(Math.floor((user?.completedLessons || 0) / 10) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 5, 100) },
+    { name: 'Behavioral Management', level: Math.min(Math.floor((user?.completedLessons || 0) / 15) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 3, 100) },
+    { name: 'Person-Centered Care', level: Math.min(Math.floor((user?.completedLessons || 0) / 8) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 7, 100) },
+    { name: 'Safety Assessment', level: Math.min(Math.floor((user?.completedLessons || 0) / 20) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 2, 100) }
   ];
 
   return (
     <div className="progress-dashboard">
       <div className="dashboard-header">
         <h1 className="dashboard-title">Your Learning Progress</h1>
+        {(!user?.completedLessons || user.completedLessons === 0) && (
+          <p className="dashboard-subtitle">Start your first course to begin tracking your progress!</p>
+        )}
       </div>
 
-      <StatsOverview stats={mockStats} />
+      <StatsOverview stats={userStats} />
 
       <div className="dashboard-grid">
         <div className="dashboard-main">
-          <CurrentCourse course={mockCurrentCourse} />
+          <CurrentCourse course={mockCurrentCourse} user={user} />
         </div>
         
         <div className="dashboard-sidebar">
-          <Badges achievements={mockAchievements} />
+          <Badges achievements={mockAchievements} user={user} />
         </div>
       </div>
     </div>

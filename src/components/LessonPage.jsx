@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SpeakerButton from './SpeakerButton';
 import './LessonPage.css';
 import AIChatbot from './AIChatbot';
 
@@ -48,7 +49,12 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
 
       <div className="question-container">
         <div className="question-content">
-          <div className="question-text">{question?.question}</div>
+          <div className="text-with-speaker">
+            <div className="text-content">
+              <div className="question-text">{question?.question}</div>
+            </div>
+            <SpeakerButton text={question?.question || ''} />
+          </div>
         </div>
 
         <div className="question-type">
@@ -57,22 +63,26 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
               const letter = String.fromCharCode(65 + index); // A, B, C, D
               const questionId = question.id || currentQuestion;
               return (
-                <button
-                  key={index}
-                  className={`choice-option ${hasAnswered?.answer === option ? 'selected' : ''
-                    } ${hasAnswered?.isCorrect !== undefined
-                      ? letter === question.answer
-                        ? 'correct'
-                        : hasAnswered?.answer === option && !hasAnswered?.isCorrect
-                          ? 'incorrect'
-                          : ''
-                      : ''
-                    }`}
-                  onClick={() => onAnswer(questionId, option)}
-                  disabled={hasAnswered?.isCorrect !== undefined}
-                >
-                  {letter}. {option}
-                </button>
+                <div key={index} className="choice-option-container">
+                  <button
+                    className={`choice-option ${hasAnswered?.answer === option ? 'selected' : ''
+                      } ${hasAnswered?.isCorrect !== undefined
+                        ? letter === question.answer
+                          ? 'correct'
+                          : hasAnswered?.answer === option && !hasAnswered?.isCorrect
+                            ? 'incorrect'
+                            : ''
+                        : ''
+                      }`}
+                    onClick={() => onAnswer(questionId, option)}
+                    disabled={hasAnswered?.isCorrect !== undefined}
+                  >
+                    <span className="option-content">
+                      {letter}. {option}
+                    </span>
+                  </button>
+                  <SpeakerButton text={`${letter}. ${option}`} className="option-speaker" />
+                </div>
               );
             })}
           </div>
@@ -83,10 +93,21 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
             <div className="feedback-icon">
               {hasAnswered.isCorrect ? '✅' : '❌'}
             </div>
-            <div className="feedback-text">
-              {hasAnswered.isCorrect
-                ? 'Great job! That\'s correct.'
-                : 'Not quite right. The correct answer is highlighted above.'}
+            <div className="text-with-speaker">
+              <div className="text-content">
+                <div className="feedback-text">
+                  {hasAnswered.isCorrect
+                    ? 'Great job! That\'s correct.'
+                    : 'Not quite right. The correct answer is highlighted above.'}
+                </div>
+              </div>
+              <SpeakerButton
+                text={hasAnswered.isCorrect
+                  ? 'Great job! That\'s correct.'
+                  : 'Not quite right. The correct answer is highlighted above.'
+                }
+                className="feedback-speaker"
+              />
             </div>
           </div>
         )}
@@ -108,18 +129,28 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
 
         {showHint && (
           <div className="hint-container">
-            <h4>💡 Hint</h4>
-            <p>{question?.hint || 'Think about the key concepts from the lesson content above.'}</p>
+            <div className="text-with-speaker">
+              <div className="text-content">
+                <h4>💡 Hint</h4>
+                <p>{question?.hint || 'Think about the key concepts from the lesson content above.'}</p>
+              </div>
+              <SpeakerButton text={question?.hint || 'Think about the key concepts from the lesson content above.'} />
+            </div>
           </div>
         )}
 
         {showSolution && (
           <div className="solution-container">
-            <h4>📝 Explanation</h4>
-            <div className="solution-steps">
-              <div className="step">
-                <span className="step-text">{question?.explanation || `The correct answer is ${question?.answer}. This relates to the fundamental understanding of dementia as covered in the lesson.`}</span>
+            <div className="text-with-speaker">
+              <div className="text-content">
+                <h4>📝 Explanation</h4>
+                <div className="solution-steps">
+                  <div className="step">
+                    <span className="step-text">{question?.explanation || `The correct answer is ${question?.answer}. This relates to the fundamental understanding of dementia as covered in the lesson.`}</span>
+                  </div>
+                </div>
               </div>
+              <SpeakerButton text={question?.explanation || `The correct answer is ${question?.answer}. This relates to the fundamental understanding of dementia as covered in the lesson.`} />
             </div>
           </div>
         )}
