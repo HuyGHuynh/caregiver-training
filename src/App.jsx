@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
+import { FontSizeProvider } from './contexts/FontSizeContext'
 import { MainLayout, HomePage, CoursePage, CoursesPage, LessonPage, ProgressDashboard, UserProfile } from './components'
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -57,40 +58,46 @@ function App() {
   };
 
   if (!currentUser) {
-    return showLogin ? (
-      <LoginPage 
-        onLoginSuccess={() => console.log('Logged in')}
-        onNavigateToRegister={() => setShowLogin(false)}
-      />
-    ) : (
-      <RegisterPage
-        onRegisterSuccess={handleRegisterSuccess}
-        onBackToLogin={() => setShowLogin(true)}
-      />
+    return (
+      <FontSizeProvider>
+        {showLogin ? (
+          <LoginPage 
+            onLoginSuccess={() => console.log('Logged in')}
+            onNavigateToRegister={() => setShowLogin(false)}
+          />
+        ) : (
+          <RegisterPage
+            onRegisterSuccess={handleRegisterSuccess}
+            onBackToLogin={() => setShowLogin(true)}
+          />
+        )}
+      </FontSizeProvider>
     );
   }
   
   return (
-    <div className="App">
-      {currentPage === 'profile' ? (
-        <UserProfile user={user} onBack={() => setCurrentPage('home')} />
-      ) : (
-        <MainLayout 
-          user={user} 
-          currentPage={currentPage} 
-          onNavigate={setCurrentPage}
-          onSignOut={handleLogout}
-        >
-          <main className="app-main">
-            {currentPage === 'home' && <HomePage user={user} onCourseSelect={handleCourseSelect} />}
-            {currentPage === 'courses' && <CoursesPage onCourseSelect={handleCourseSelect} />}
-            {currentPage === 'course' && <CoursePage selectedCourse={selectedCourse} onStartLesson={handleLessonSelect} />}
-            {currentPage === 'lesson' && <LessonPage lesson={selectedLesson} />}
-            {currentPage === 'progress' && <ProgressDashboard user={user} />}
-          </main>
-        </MainLayout>
-      )}
-    </div>
+    <FontSizeProvider>
+      <div className="App">
+        {currentPage === 'profile' ? (
+          <UserProfile user={user} onBack={() => setCurrentPage('home')} />
+        ) : (
+          <MainLayout 
+            user={user} 
+            currentPage={currentPage} 
+            onNavigate={setCurrentPage}
+            onSignOut={handleLogout}
+          >
+            <main className="app-main">
+              {currentPage === 'home' && <HomePage user={user} onCourseSelect={handleCourseSelect} />}
+              {currentPage === 'courses' && <CoursesPage onCourseSelect={handleCourseSelect} />}
+              {currentPage === 'course' && <CoursePage selectedCourse={selectedCourse} onStartLesson={handleLessonSelect} user={user} />}
+              {currentPage === 'lesson' && <LessonPage lesson={selectedLesson} />}
+              {currentPage === 'progress' && <ProgressDashboard user={user} />}
+            </main>
+          </MainLayout>
+        )}
+      </div>
+    </FontSizeProvider>
   )
 }
 

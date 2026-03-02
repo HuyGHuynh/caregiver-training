@@ -569,6 +569,109 @@
   text-align: right;
 }
 
+/* Empty States for New Users */
+.dashboard-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+  font-weight: var(--font-weight-normal);
+}
+
+/* No Course Card */
+.no-course-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-2xl);
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+  text-align: left;
+}
+
+.no-course-icon {
+  font-size: var(--font-size-4xl);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.no-course-content {
+  flex: 1;
+}
+
+.no-course-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.no-course-description {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-lg);
+}
+
+.no-course-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.stat-item .stat-icon {
+  font-size: var(--font-size-base);
+  opacity: 0.6;
+}
+
+.stat-item .stat-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* No Badges Yet */
+.no-badges-yet {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  background: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  text-align: left;
+}
+
+.no-badges-icon {
+  font-size: var(--font-size-3xl);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.no-badges-content {
+  flex: 1;
+}
+
+.no-badges-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.no-badges-description {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .dashboard-grid {
@@ -621,6 +724,21 @@
   .activity-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  /* Empty states responsive */
+  .no-course-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .no-badges-yet {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .no-course-stats {
+    align-items: center;
   }
 }
 

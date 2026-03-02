@@ -169,6 +169,153 @@
   outline-offset: 2px;
 }
 
+/* Font Size Dropdown */
+.font-size-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.font-size-trigger {
+  background: none;
+  border: none;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-secondary, #6b7280);
+  transition: all var(--transition-fast, 0.15s ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.font-size-trigger:hover {
+  background: var(--bg-light, #f9fafb);
+  color: var(--text-primary, #111827);
+}
+
+.font-size-trigger:focus {
+  outline: 2px solid var(--primary-blue, #3b82f6);
+  outline-offset: 2px;
+}
+
+.font-size-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1000;
+  margin-top: var(--spacing-xs, 4px);
+  overflow: hidden;
+}
+
+.dropdown-header {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  border-bottom: 1px solid var(--border-light, #e5e7eb);
+  background: var(--bg-secondary, #f9fafb);
+}
+
+.dropdown-header h3 {
+  margin: 0;
+  font-size: var(--font-size-sm, 14px);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-primary, #111827);
+}
+
+.font-size-options {
+  padding: var(--spacing-xs, 4px);
+}
+
+.font-size-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease);
+  border-radius: var(--radius-sm, 4px);
+  margin-bottom: 2px;
+}
+
+.font-size-option:hover {
+  background: var(--bg-light, #f3f4f6);
+}
+
+.font-size-option.active {
+  background: var(--primary-blue, #3b82f6);
+  color: white;
+}
+
+.font-size-option.active .option-label,
+.font-size-option.active .option-preview {
+  color: white;
+}
+
+.option-label {
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--text-primary, #111827);
+}
+
+.option-preview {
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--text-secondary, #6b7280);
+  font-family: serif;
+}
+
+/* Global font size scaling */
+:root {
+  --font-size-scale: 1;
+}
+
+[data-font-size="small"] {
+  --font-size-xs: calc(0.75rem * var(--font-size-scale));
+  --font-size-sm: calc(0.875rem * var(--font-size-scale));
+  --font-size-base: calc(1rem * var(--font-size-scale));
+  --font-size-lg: calc(1.125rem * var(--font-size-scale));
+  --font-size-xl: calc(1.25rem * var(--font-size-scale));
+  --font-size-2xl: calc(1.5rem * var(--font-size-scale));
+  --font-size-3xl: calc(1.875rem * var(--font-size-scale));
+}
+
+[data-font-size="medium"] {
+  --font-size-xs: calc(0.75rem * var(--font-size-scale));
+  --font-size-sm: calc(0.875rem * var(--font-size-scale));
+  --font-size-base: calc(1rem * var(--font-size-scale));
+  --font-size-lg: calc(1.125rem * var(--font-size-scale));
+  --font-size-xl: calc(1.25rem * var(--font-size-scale));
+  --font-size-2xl: calc(1.5rem * var(--font-size-scale));
+  --font-size-3xl: calc(1.875rem * var(--font-size-scale));
+}
+
+[data-font-size="large"] {
+  --font-size-xs: calc(0.75rem * var(--font-size-scale));
+  --font-size-sm: calc(0.875rem * var(--font-size-scale));
+  --font-size-base: calc(1rem * var(--font-size-scale));
+  --font-size-lg: calc(1.125rem * var(--font-size-scale));
+  --font-size-xl: calc(1.25rem * var(--font-size-scale));
+  --font-size-2xl: calc(1.5rem * var(--font-size-scale));
+  --font-size-3xl: calc(1.875rem * var(--font-size-scale));
+}
+
+[data-font-size="extra-large"] {
+  --font-size-xs: calc(0.75rem * var(--font-size-scale));
+  --font-size-sm: calc(0.875rem * var(--font-size-scale));
+  --font-size-base: calc(1rem * var(--font-size-scale));
+  --font-size-lg: calc(1.125rem * var(--font-size-scale));
+  --font-size-xl: calc(1.25rem * var(--font-size-scale));
+  --font-size-2xl: calc(1.5rem * var(--font-size-scale));
+  --font-size-3xl: calc(1.875rem * var(--font-size-scale));
+}
+
 /* Layout Body */
 .layout-body {
   display: flex;

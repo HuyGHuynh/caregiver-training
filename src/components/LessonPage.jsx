@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import SpeakerButton from './SpeakerButton';
 import './LessonPage.css';
+import AIChatbot from './AIChatbot';
 
 const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -32,13 +34,11 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
           const isAnswered = userAnswers[questions[index]?.id || index];
           const isCorrect = isAnswered?.isCorrect;
           return (
-            <div 
+            <div
               key={index}
-              className={`progress-dot ${
-                index === currentQuestion ? 'current' : ''
-              } ${
-                isAnswered ? (isCorrect ? 'completed-correct' : 'completed-incorrect') : ''
-              }`}
+              className={`progress-dot ${index === currentQuestion ? 'current' : ''
+                } ${isAnswered ? (isCorrect ? 'completed-correct' : 'completed-incorrect') : ''
+                }`}
               onClick={() => setCurrentQuestion(index)}
             >
               {index + 1}
@@ -49,7 +49,12 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
 
       <div className="question-container">
         <div className="question-content">
-          <div className="question-text">{question?.question}</div>
+          <div className="text-with-speaker">
+            <div className="text-content">
+              <div className="question-text">{question?.question}</div>
+            </div>
+            <SpeakerButton text={question?.question || ''} />
+          </div>
         </div>
 
         <div className="question-type">
@@ -58,24 +63,26 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
               const letter = String.fromCharCode(65 + index); // A, B, C, D
               const questionId = question.id || currentQuestion;
               return (
-                <button
-                  key={index}
-                  className={`choice-option ${
-                    hasAnswered?.answer === option ? 'selected' : ''
-                  } ${
-                    hasAnswered?.isCorrect !== undefined
-                      ? letter === question.answer
-                        ? 'correct'
-                        : hasAnswered?.answer === option && !hasAnswered?.isCorrect
-                        ? 'incorrect'
+                <div key={index} className="choice-option-container">
+                  <button
+                    className={`choice-option ${hasAnswered?.answer === option ? 'selected' : ''
+                      } ${hasAnswered?.isCorrect !== undefined
+                        ? letter === question.answer
+                          ? 'correct'
+                          : hasAnswered?.answer === option && !hasAnswered?.isCorrect
+                            ? 'incorrect'
+                            : ''
                         : ''
-                      : ''
-                  }`}
-                  onClick={() => onAnswer(questionId, option)}
-                  disabled={hasAnswered?.isCorrect !== undefined}
-                >
-                  {letter}. {option}
-                </button>
+                      }`}
+                    onClick={() => onAnswer(questionId, option)}
+                    disabled={hasAnswered?.isCorrect !== undefined}
+                  >
+                    <span className="option-content">
+                      {letter}. {option}
+                    </span>
+                  </button>
+                  <SpeakerButton text={`${letter}. ${option}`} className="option-speaker" />
+                </div>
               );
             })}
           </div>
@@ -86,10 +93,21 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
             <div className="feedback-icon">
               {hasAnswered.isCorrect ? '✅' : '❌'}
             </div>
-            <div className="feedback-text">
-              {hasAnswered.isCorrect
-                ? 'Great job! That\'s correct.'
-                : 'Not quite right. The correct answer is highlighted above.'}
+            <div className="text-with-speaker">
+              <div className="text-content">
+                <div className="feedback-text">
+                  {hasAnswered.isCorrect
+                    ? 'Great job! That\'s correct.'
+                    : 'Not quite right. The correct answer is highlighted above.'}
+                </div>
+              </div>
+              <SpeakerButton
+                text={hasAnswered.isCorrect
+                  ? 'Great job! That\'s correct.'
+                  : 'Not quite right. The correct answer is highlighted above.'
+                }
+                className="feedback-speaker"
+              />
             </div>
           </div>
         )}
@@ -111,18 +129,28 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
 
         {showHint && (
           <div className="hint-container">
-            <h4>💡 Hint</h4>
-            <p>{question?.hint || 'Think about the key concepts from the lesson content above.'}</p>
+            <div className="text-with-speaker">
+              <div className="text-content">
+                <h4>💡 Hint</h4>
+                <p>{question?.hint || 'Think about the key concepts from the lesson content above.'}</p>
+              </div>
+              <SpeakerButton text={question?.hint || 'Think about the key concepts from the lesson content above.'} />
+            </div>
           </div>
         )}
 
         {showSolution && (
           <div className="solution-container">
-            <h4>📝 Explanation</h4>
-            <div className="solution-steps">
-              <div className="step">
-                <span className="step-text">{question?.explanation || `The correct answer is ${question?.answer}. This relates to the fundamental understanding of dementia as covered in the lesson.`}</span>
+            <div className="text-with-speaker">
+              <div className="text-content">
+                <h4>📝 Explanation</h4>
+                <div className="solution-steps">
+                  <div className="step">
+                    <span className="step-text">{question?.explanation || `The correct answer is ${question?.answer}. This relates to the fundamental understanding of dementia as covered in the lesson.`}</span>
+                  </div>
+                </div>
               </div>
+              <SpeakerButton text={question?.explanation || `The correct answer is ${question?.answer}. This relates to the fundamental understanding of dementia as covered in the lesson.`} />
             </div>
           </div>
         )}
@@ -146,6 +174,12 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
           Next
         </button>
       </div>
+
+      {/* AI Chatbot - only visible during knowledge assessment */}
+      <AIChatbot
+        currentQuestion={question}
+        isVisible={true}
+      />
     </div>
   );
 };
@@ -161,7 +195,7 @@ const LessonContent = ({ lesson, onQuizAnswer, quizAnswers, onQuizReset }) => {
             <p>{lesson.description}</p>
           </div>
         </div>
-        
+
         <KnowledgeAssessment
           questions={lesson.quiz}
           onAnswer={onQuizAnswer}
@@ -171,7 +205,7 @@ const LessonContent = ({ lesson, onQuizAnswer, quizAnswers, onQuizReset }) => {
       </div>
     );
   }
-  
+
   // Default lesson content for other lessons
   return (
     <div className="lesson-content">
@@ -179,16 +213,16 @@ const LessonContent = ({ lesson, onQuizAnswer, quizAnswers, onQuizReset }) => {
         <h3>Key Concepts</h3>
         <div className="content-text">
           <p>
-            In this lesson, we'll explore effective communication strategies for dementia caregiving. 
+            In this lesson, we'll explore effective communication strategies for dementia caregiving.
             Clear, respectful communication is essential for providing quality care and maintaining dignity.
           </p>
           <p>
-            The key principle is to adapt your communication style to the person's current abilities 
+            The key principle is to adapt your communication style to the person's current abilities
             while maintaining patience, empathy, and understanding throughout all interactions.
           </p>
         </div>
       </div>
-      
+
       <div className="content-section">
         <h3>Examples</h3>
         <div className="example-container">
@@ -229,11 +263,11 @@ const LessonContent = ({ lesson, onQuizAnswer, quizAnswers, onQuizReset }) => {
           </div>
           <div className="visualization-controls">
             <label>
-              Tone of Voice: 
+              Tone of Voice:
               <select><option>Calm and gentle</option><option>Reassuring</option></select>
             </label>
             <label>
-              Body Language: 
+              Body Language:
               <select><option>Open and relaxed</option><option>Attentive</option></select>
             </label>
           </div>
@@ -264,7 +298,7 @@ const LessonNavigation = ({ lesson, onPrevious, onNext, onComplete }) => (
   </div>
 );
 
-const LessonPage = ({ lesson, onComplete = () => {}, onNext = () => {}, onPrevious = () => {} }) => {
+const LessonPage = ({ lesson, onComplete = () => { }, onNext = () => { }, onPrevious = () => { } }) => {
   const [quizAnswers, setQuizAnswers] = useState({});
 
   // Mock data
@@ -286,13 +320,13 @@ const LessonPage = ({ lesson, onComplete = () => {}, onNext = () => {}, onPrevio
   };
 
   const handleQuizAnswer = (questionId, answer) => {
-    const question = mockLesson.quiz?.find(q => (q.id || mockLesson.quiz?.indexOf(q)) === questionId) || 
-                    mockLesson.quiz?.[questionId];
+    const question = mockLesson.quiz?.find(q => (q.id || mockLesson.quiz?.indexOf(q)) === questionId) ||
+      mockLesson.quiz?.[questionId];
     if (!question) return;
-    
+
     const correctOption = question.options[question.answer.charCodeAt(0) - 65]; // Convert A/B/C/D to option text
     const isCorrect = answer === correctOption;
-    
+
     setQuizAnswers(prev => ({
       ...prev,
       [questionId]: { answer, isCorrect }
@@ -303,8 +337,8 @@ const LessonPage = ({ lesson, onComplete = () => {}, onNext = () => {}, onPrevio
     <div className="lesson-page">
       <div className="lesson-header">
         <div className="lesson-breadcrumb">
-          <a href="/courses">Courses</a> → 
-          <a href="/course/1">Basic Best Practices of Dementia Caregiving</a> → 
+          <a href="/courses">Courses</a> →
+          <a href="/course/1">Basic Best Practices of Dementia Caregiving</a> →
           <span>Lesson {mockLesson.number}</span>
         </div>
         <h1 className="lesson-title">{mockLesson.title}</h1>
@@ -319,8 +353,8 @@ const LessonPage = ({ lesson, onComplete = () => {}, onNext = () => {}, onPrevio
 
       <div className="lesson-body">
         <div className="learn-content">
-          <LessonContent 
-            lesson={mockLesson} 
+          <LessonContent
+            lesson={mockLesson}
             onQuizAnswer={handleQuizAnswer}
             quizAnswers={quizAnswers}
             onQuizReset={handleQuizReset}
