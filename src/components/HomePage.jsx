@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './HomePage.css';
+import { getRandomQuote } from './quotes';
 
 const CourseCard = ({ course, onCourseSelect }) => (
   <div className="course-card">
@@ -51,10 +52,21 @@ const CourseCard = ({ course, onCourseSelect }) => (
 
 const HeroSection = ({ user }) => {
   const isNewUser = !user?.completedLessons || user.completedLessons === 0;
+  const [dailyQuote, setDailyQuote] = useState('');
+  
+  useEffect(() => {
+    // Set a random quote when the component loads
+    setDailyQuote(getRandomQuote());
+  }, []);
   
   return (
     <section className="hero-section">
       <div className="hero-content">
+        {dailyQuote && (
+          <div className="daily-quote">
+            <p className="quote-text">"{dailyQuote}"</p>
+          </div>
+        )}
         <h1 className="hero-title">
           {isNewUser ? `Welcome to EduPlatform, ${user?.name || 'Student'}! 👋` : `Welcome back, ${user?.name || 'Student'}! 👋`}
         </h1>
