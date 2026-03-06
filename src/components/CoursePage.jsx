@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { fetchQuestions } from '../services/api';
+import {
+  getCourseProgress,
+  getAvailableSubsections,
+  canAccessLesson,
+  extractSubsectionNumber
+} from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import './CoursePage.css';
 
 const LessonItem = ({ lesson, courseProgress, onStartLesson }) => {
@@ -24,7 +31,7 @@ const LessonItem = ({ lesson, courseProgress, onStartLesson }) => {
         {!isAvailable ? (
           <div className="lock-icon">🔒</div>
         ) : (
-          <button 
+          <button
             className={`btn ${isCompleted ? 'btn-secondary' : 'btn-primary'}`}
             onClick={() => onStartLesson(lesson)}
           >
@@ -62,15 +69,15 @@ const CourseHeader = ({ course, progress }) => (
         </div>
       </div>
     </div>
-    
+
     <div className="course-progress-section">
       <div className="progress-header">
         <h3>Your Progress</h3>
         <span className="progress-percentage">{progress.percentage}%</span>
       </div>
       <div className="progress-bar">
-        <div 
-          className="progress-fill" 
+        <div
+          className="progress-fill"
           style={{ width: `${progress.percentage}%` }}
         ></div>
       </div>
@@ -109,8 +116,8 @@ const CourseNavigation = ({ modules, activeModule, onModuleChange }) => (
             </div>
           </div>
           <div className="module-status">
-            {module.completedLessons === module.totalLessons ? '✓' : 
-             module.completedLessons > 0 ? '📚' : '○'}
+            {module.completedLessons === module.totalLessons ? '✓' :
+              module.completedLessons > 0 ? '📚' : '○'}
           </div>
         </button>
       ))}
@@ -118,17 +125,60 @@ const CourseNavigation = ({ modules, activeModule, onModuleChange }) => (
   </div>
 );
 
-const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
+const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTrigger = 0 }) => {
   const [activeModule, setActiveModule] = useState(1);
   const [lesson11Questions, setLesson11Questions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [courseProgress, setCourseProgress] = useState(null);
+  const [availableSubsections, setAvailableSubsections] = useState([]);
+  const [progressLoading, setProgressLoading] = useState(true);
+
+  const { currentUser, userProfile } = useAuth();
 
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
-  
-  // Calculate user progress dynamically
-  const userCompletedLessons = user?.completedLessons || 0;
-  const isNewUser = userCompletedLessons === 0;
+
+  // Course category for API calls
+  const courseCategory = selectedCourse?.category || 'Basic Best Practices of Dementia Caregiving';
+
+  // Fetch course progress and available subsections
+  const loadCourseData = async () => {
+    if (!currentUser) {
+      setProgressLoading(false);
+      return;
+    }
+
+    setProgressLoading(true);
+    try {
+      // Fetch course progress
+      const progress = await getCourseProgress(currentUser.uid, courseCategory);
+      setCourseProgress(progress);
+
+      // Fetch available subsections
+      const subsections = await getAvailableSubsections(currentUser.uid, courseCategory);
+      setAvailableSubsections(subsections.subsections || []);
+
+      console.log('📊 Course progress updated:', progress);
+      console.log('🔓 Available subsections:', subsections.subsections);
+    } catch (error) {
+      console.error('Error loading course data:', error);
+      // Use fallback data from userProfile if API fails
+      if (userProfile) {
+        setCourseProgress({
+          category: courseCategory,
+          completedSubsections: userProfile.progress?.completedSubsections || [],
+          progress: 0,
+          isStarted: userProfile.progress?.lessonsCompleted > 0
+        });
+      }
+    } finally {
+      setProgressLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCourseData();
+  }, [currentUser, courseCategory, userProfile]);
 
   // Fetch questions for lesson 1.1 on mount
   useEffect(() => {
@@ -136,8 +186,10 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       setLoading(true);
       try {
         const questions = await fetchQuestions({ subsection: '1.1' });
-        setLesson11Questions(questions);
-        console.log('Loaded questions:', questions);
+        // Limit to first 4 questions for now
+        const limitedQuestions = questions.slice(0, 4);
+        setLesson11Questions(limitedQuestions);
+        console.log(`Loaded ${limitedQuestions.length} questions (limited to first 4):`, limitedQuestions);
       } catch (error) {
         console.error('Error loading questions:', error);
       } finally {
@@ -149,13 +201,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       loadQuestions();
     }
   }, [isIntermediateCourse]);
-  
+
   // Mock data - replace with real data
   const mockCourse = {
     id: selectedCourse?.id || 1,
     title: isIntermediateCourse ? 'Intermediate Dementia Caregiving Knowledge' : 'Basic Best Practices of Dementia Caregiving',
     category: 'Healthcare & Caregiving',
-    description: isIntermediateCourse 
+    description: isIntermediateCourse
       ? 'Advanced dementia caregiving strategies focusing on behavioral management, complex coordination, and specialized interventions for challenging situations.'
       : 'Comprehensive training in dementia caregiving from foundational knowledge through advanced care strategies and specialized interventions.',
     icon: isIntermediateCourse ? '🧠' : '🏥',
@@ -167,19 +219,22 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
   };
 
   const mockProgress = {
-    percentage: isNewUser ? 0 : (isIntermediateCourse ? Math.min(Math.max((userCompletedLessons - 11) * 8, 0), 100) : Math.min(userCompletedLessons * 9, 100)),
-    completed: isNewUser ? 0 : (isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : Math.min(userCompletedLessons, 11)),
-    remaining: isIntermediateCourse ? (13 - Math.max(userCompletedLessons - 11, 0)) : (11 - Math.min(userCompletedLessons, 11)),
-    pointsEarned: isNewUser ? 0 : (isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) * 100 : Math.min(userCompletedLessons, 11) * 75),
-    currentLesson: isNewUser ? 1 : (isIntermediateCourse ? Math.max(userCompletedLessons - 11 + 1, 1) : Math.min(userCompletedLessons + 1, 11))
+    percentage: courseProgress ? courseProgress.progress : 0,
+    completed: courseProgress ? courseProgress.completedSubsections?.length || 0 : 0,
+    remaining: isIntermediateCourse ? (13 - (courseProgress?.completedSubsections?.length || 0)) : (11 - (courseProgress?.completedSubsections?.length || 0)),
+    pointsEarned: userProfile ? userProfile.progress?.totalPoints || 0 : 0,
+    currentLesson: courseProgress ? Math.min((courseProgress.completedSubsections?.length || 0) + 1, isIntermediateCourse ? 13 : 11) : 1
   };
 
   // Calculate module completion based on user progress
-  const calculateModuleCompletion = (moduleId, totalLessonsInModule, startingLessonNumber) => {
-    if (isNewUser) return 0;
-    const relevantLessons = isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : userCompletedLessons;
-    if (relevantLessons <= startingLessonNumber - 1) return 0;
-    return Math.min(relevantLessons - startingLessonNumber + 1, totalLessonsInModule);
+  const calculateModuleCompletion = (moduleId, totalLessonsInModule, lessonsInModule) => {
+    if (!courseProgress || !courseProgress.completedSubsections) return 0;
+
+    const completedInModule = lessonsInModule.filter(lessonSubsection =>
+      courseProgress.completedSubsections.includes(extractSubsectionNumber(lessonSubsection))
+    ).length;
+
+    return completedInModule;
   };
 
   const mockModules = isIntermediateCourse ? [
@@ -187,53 +242,60 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       id: 1,
       title: 'Foundational Adjustments (Easy)',
       totalLessons: 3,
-      completedLessons: calculateModuleCompletion(1, 3, 1)
+      completedLessons: calculateModuleCompletion(1, 3, ['1.1', '1.2', '1.3'])
     },
     {
       id: 2,
       title: 'Active Behavioral Management (Intermediate)',
       totalLessons: 5,
-      completedLessons: calculateModuleCompletion(2, 5, 4)
+      completedLessons: calculateModuleCompletion(2, 5, ['2.1', '2.2', '2.3', '2.4', '2.5'])
     },
     {
       id: 3,
       title: 'Complex Coordination & Risk (Advanced)',
       totalLessons: 5,
-      completedLessons: calculateModuleCompletion(3, 5, 9)
+      completedLessons: calculateModuleCompletion(3, 5, ['3.1', '3.2', '3.3', '3.4', '3.5'])
     }
   ] : [
     {
       id: 1,
       title: 'Foundational Knowledge and Early-Stage Care (Basic)',
       totalLessons: 4,
-      completedLessons: calculateModuleCompletion(1, 4, 1)
+      completedLessons: calculateModuleCompletion(1, 4, ['1.1', '1.2', '1.3', '1.4'])
     },
     {
       id: 2,
       title: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
       totalLessons: 4,
-      completedLessons: calculateModuleCompletion(2, 4, 5)
+      completedLessons: calculateModuleCompletion(2, 4, ['2.1', '2.2', '2.3', '2.4'])
     },
     {
       id: 3,
       title: 'Advanced Care and Specialized Interventions (Advanced)',
       totalLessons: 3,
-      completedLessons: calculateModuleCompletion(3, 3, 9)
+      completedLessons: calculateModuleCompletion(3, 3, ['3.1', '3.2', '3.3'])
     }
   ];
 
   // Helper function to determine if a lesson is completed based on user progress
-  const isLessonCompleted = (lessonNumber) => {
-    if (isNewUser) return false;
-    const relevantProgress = isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : userCompletedLessons;
-    return relevantProgress >= lessonNumber;
+  const isLessonCompleted = (lessonSubsection) => {
+    if (!courseProgress || !courseProgress.completedSubsections) return false;
+    const subsectionNum = extractSubsectionNumber(lessonSubsection);
+    return courseProgress.completedSubsections.includes(subsectionNum);
   };
 
   // Helper function to determine if a lesson is available
-  const isLessonAvailable = (lessonNumber) => {
-    if (lessonNumber === 1) return true; // First lesson always available
-    const relevantProgress = isIntermediateCourse ? Math.max(userCompletedLessons - 11, 0) : userCompletedLessons;
-    return relevantProgress >= lessonNumber - 1; // Available if previous lesson is completed
+  const isLessonAvailable = (lessonSubsection) => {
+    if (!currentUser) return lessonSubsection === '1.1'; // Only first lesson for guest users
+
+    if (userProfile && userProfile.progress) {
+      return canAccessLesson(lessonSubsection, userProfile.progress);
+    }
+
+    // Check from availableSubsections data
+    const subsectionNum = extractSubsectionNumber(lessonSubsection);
+    const subsectionData = availableSubsections.find(s => s.subsection === subsectionNum);
+    return subsectionData ? subsectionData.isUnlocked : lessonSubsection === '1.1';
   };
 
   const mockLessons = isIntermediateCourse ? [
@@ -247,8 +309,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Interactive Lesson',
       duration: 30,
       points: 100,
-      completed: isLessonCompleted(1),
-      isAvailable: isLessonAvailable(1),
+      completed: isLessonCompleted('4.1'),
+      isAvailable: isLessonAvailable('4.1'),
+      subsection: '4.1',
+      category: courseCategory,
+      section: 'Foundational Adjustments (Easy)',
       skills: ['Activity Planning', 'Cognitive Assessment', 'Engagement Strategies']
     },
     {
@@ -260,8 +325,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Video + Practice',
       duration: 35,
       points: 125,
-      completed: isLessonCompleted(2),
-      isAvailable: isLessonAvailable(2),
+      completed: isLessonCompleted('4.2'),
+      isAvailable: isLessonAvailable('4.2'),
+      subsection: '4.2',
+      category: courseCategory,
+      section: 'Foundational Adjustments (Easy)',
       skills: ['Advanced Communication', 'Middle-Stage Care', 'Verbal Techniques']
     },
     {
@@ -273,8 +341,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Case Studies',
       duration: 25,
       points: 75,
-      completed: isLessonCompleted(3),
-      isAvailable: isLessonAvailable(3),
+      completed: isLessonCompleted('4.3'),
+      isAvailable: isLessonAvailable('4.3'),
+      subsection: '4.3',
+      category: courseCategory,
+      section: 'Foundational Adjustments (Easy)',
       skills: ['Sundowning Management', 'Behavioral Patterns', 'Environmental Modifications']
     },
     // Module 2: Active Behavioral Management (Intermediate)
@@ -287,8 +358,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Framework Training',
       duration: 40,
       points: 150,
-      completed: isLessonCompleted(4),
-      isAvailable: isLessonAvailable(4),
+      completed: isLessonCompleted('5.1'),
+      isAvailable: isLessonAvailable('5.1'),
+      subsection: '5.1',
+      category: courseCategory,
+      section: 'Active Behavioral Management (Intermediate)',
       skills: ['BPSD Framework', 'Trigger Identification', 'Response Planning']
     },
     {
@@ -300,8 +374,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Practical Training',
       duration: 45,
       points: 175,
-      completed: isLessonCompleted(5),
-      isAvailable: isLessonAvailable(5),
+      completed: isLessonCompleted('5.2'),
+      isAvailable: isLessonAvailable('5.2'),
+      subsection: '5.2',
+      category: courseCategory,
+      section: 'Active Behavioral Management (Intermediate)',
       skills: ['Care Resistance', 'Personal Care', 'Dignity Preservation']
     },
     {
@@ -313,8 +390,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Safety Training',
       duration: 35,
       points: 125,
-      completed: isLessonCompleted(6),
-      isAvailable: isLessonAvailable(6),
+      completed: isLessonCompleted('5.3'),
+      isAvailable: isLessonAvailable('5.3'),
+      subsection: '5.3',
+      category: courseCategory,
+      section: 'Active Behavioral Management (Intermediate)',
       skills: ['Wandering Management', 'Safety Planning', 'Environmental Safety']
     },
     {
@@ -419,8 +499,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       description: 'Identifying dementia and Alzheimer\'s, recognizing that stages are general guides, and understanding that symptoms vary by person.',
       duration: 25,
       points: 75,
-      completed: isLessonCompleted(1),
-      isAvailable: isLessonAvailable(1),
+      completed: isLessonCompleted('1.1'),
+      isAvailable: isLessonAvailable('1.1'),
+      subsection: '1.1',
+      category: courseCategory,
+      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
       quiz: lesson11Questions
     },
     {
@@ -432,8 +515,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Interactive Lesson',
       duration: 20,
       points: 50,
-      completed: isLessonCompleted(2),
-      isAvailable: isLessonAvailable(2),
+      completed: isLessonCompleted('1.2'),
+      isAvailable: isLessonAvailable('1.2'),
+      subsection: '1.2',
+      category: courseCategory,
+      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
       skills: ['Self-Care', 'Support Systems', 'Stress Management']
     },
     {
@@ -445,8 +531,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Video + Practice',
       duration: 30,
       points: 100,
-      completed: isLessonCompleted(3),
-      isAvailable: isLessonAvailable(3),
+      completed: isLessonCompleted('1.3'),
+      isAvailable: isLessonAvailable('1.3'),
+      subsection: '1.3',
+      category: courseCategory,
+      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
       skills: ['Communication', 'Verbal Techniques', 'Non-verbal Cues']
     },
     {
@@ -458,9 +547,12 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Reading + Assessment',
       duration: 35,
       points: 125,
-      completed: isLessonCompleted(4),
-      isAvailable: isLessonAvailable(4),
-      skills: ['Care Planning', 'Independence', 'Future Planning']
+      completed: isLessonCompleted('1.4'),
+      isAvailable: isLessonAvailable('1.4'),
+      subsection: '1.4',
+      category: courseCategory,
+      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      skills: ['Early Planning', 'Independence', 'Future Care Planning']
     },
     // Module 2: Intermediate Care Strategies: Daily Routines and Safety (Intermediate)
     {
@@ -472,8 +564,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Interactive Lesson',
       duration: 25,
       points: 75,
-      completed: isLessonCompleted(5),
-      isAvailable: isLessonAvailable(5),
+      completed: isLessonCompleted('2.1'),
+      isAvailable: isLessonAvailable('2.1'),
+      subsection: '2.1',
+      category: courseCategory,
+      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
       skills: ['Daily Routines', 'Structure', 'Consistency']
     },
     {
@@ -485,8 +580,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Video + Practice',
       duration: 30,
       points: 100,
-      completed: isLessonCompleted(6),
-      isAvailable: isLessonAvailable(6),
+      completed: isLessonCompleted('2.2'),
+      isAvailable: isLessonAvailable('2.2'),
+      subsection: '2.2',
+      category: courseCategory,
+      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
       skills: ['ADLs', 'Task Simplification', 'Assistance Techniques']
     },
     {
@@ -498,8 +596,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Assessment + Checklist',
       duration: 40,
       points: 150,
-      completed: isLessonCompleted(7),
-      isAvailable: isLessonAvailable(7),
+      completed: isLessonCompleted('2.3'),
+      isAvailable: isLessonAvailable('2.3'),
+      subsection: '2.3',
+      category: courseCategory,
+      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
       skills: ['Home Safety', 'Environmental Design', 'Risk Assessment']
     },
     {
@@ -511,8 +612,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Case Studies',
       duration: 45,
       points: 175,
-      completed: isLessonCompleted(8),
-      isAvailable: isLessonAvailable(8),
+      completed: isLessonCompleted('2.4'),
+      isAvailable: isLessonAvailable('2.4'),
+      subsection: '2.4',
+      category: courseCategory,
+      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
       skills: ['BPSD', 'Behavioral Management', 'Intervention Strategies']
     },
     // Module 3: Advanced Care and Specialized Interventions (Advanced)
@@ -525,8 +629,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
       type: 'Expert Training',
       duration: 50,
       points: 200,
-      completed: isLessonCompleted(9),
-      isAvailable: isLessonAvailable(9),
+      completed: isLessonCompleted('3.1'),
+      isAvailable: isLessonAvailable('3.1'),
+      subsection: '3.1',
+      category: courseCategory,
+      section: 'Advanced Care and Specialized Interventions (Advanced)',
       skills: ['Physical Care', 'Medical Management', 'Complex Needs']
     },
     {
@@ -557,24 +664,38 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
     }
   ];
 
-  const currentModuleLessons = mockLessons.filter(lesson => 
+  const currentModuleLessons = mockLessons.filter(lesson =>
     lesson.moduleId === activeModule
   );
 
   return (
     <div className="course-page">
-    {loading && <div className="loading-indicator">Loading questions...</div>}
-      <CourseHeader course={mockCourse} progress={mockProgress} />
-      
+      {loading && <div className="loading-indicator">Loading questions...</div>}
+      {progressLoading && <div className="progress-indicator">📊 Loading your progress...</div>}
+      {refreshTrigger > 0 && (
+        <div className="refresh-indicator">
+          🔄 Updating progress... Next lesson will be unlocked shortly!
+        </div>
+      )}
+
+      <CourseHeader
+        course={mockCourse}
+        progress={courseProgress ? {
+          ...mockProgress,
+          completedLessons: courseProgress.completedSubsections?.length || 0,
+          progressPercentage: courseProgress.progress || 0
+        } : mockProgress}
+      />
+
       <div className="course-content">
         <div className="course-sidebar">
-          <CourseNavigation 
-            modules={mockModules} 
+          <CourseNavigation
+            modules={mockModules}
             activeModule={activeModule}
             onModuleChange={setActiveModule}
           />
         </div>
-        
+
         <div className="course-lessons">
           <div className="lessons-header">
             <h2>
@@ -584,9 +705,14 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => {}, user }) => {
               <button className="btn btn-secondary btn-small">
                 Download Materials
               </button>
+              {courseProgress && (
+                <span className="progress-text">
+                  {courseProgress.completedSubsections?.length || 0} lessons completed
+                </span>
+              )}
             </div>
           </div>
-          
+
           <div className="lessons-list">
             {currentModuleLessons.map(lesson => (
               <LessonItem

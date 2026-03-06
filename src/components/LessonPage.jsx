@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SpeakerButton from './SpeakerButton';
 import './LessonPage.css';
 import AIChatbot from './AIChatbot';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  completeSubsection,
+  checkSubsectionUnlock,
+  extractSubsectionNumber,
+  canAccessLesson
+} from '../services/api';
 
 const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -277,7 +284,7 @@ const LessonContent = ({ lesson, onQuizAnswer, quizAnswers, onQuizReset }) => {
   );
 };
 
-const LessonNavigation = ({ lesson, onPrevious, onNext, onComplete }) => (
+const LessonNavigation = ({ lesson, onPrevious, onNext, onComplete, isCompleting, canComplete }) => (
   <div className="lesson-navigation">
     <button className="btn btn-secondary" onClick={onPrevious}>
       ← Previous Lesson
@@ -291,15 +298,25 @@ const LessonNavigation = ({ lesson, onPrevious, onNext, onComplete }) => (
         Next Lesson →
       </button>
     ) : (
-      <button className="btn btn-success" onClick={onComplete}>
-        Complete Lesson
+      <button
+        className="btn btn-success"
+        onClick={onComplete}
+        disabled={!canComplete || isCompleting}
+      >
+        {isCompleting ? 'Completing...' : 'Complete Lesson'}
       </button>
     )}
   </div>
 );
 
-const LessonPage = ({ lesson, onComplete = () => { }, onNext = () => { }, onPrevious = () => { } }) => {
+const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }, onPrevious = () => { }, onBack = () => { } }) => {
   const [quizAnswers, setQuizAnswers] = useState({});
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(true);
+  const [completionError, setCompletionError] = useState(null);
+  const [completionSuccess, setCompletionSuccess] = useState(false);
+
+  const { currentUser, userProfile, refreshProfile } = useAuth();
 
   // Mock data
   const mockLesson = {
@@ -311,9 +328,38 @@ const LessonPage = ({ lesson, onComplete = () => { }, onNext = () => { }, onPrev
     type: 'Interactive Lesson',
     duration: 25,
     isCompleted: false,
+    subsection: '1.1', // Default subsection
+    category: 'Basic Best Practices of Dementia Caregiving',
+    section: 'Foundational Knowledge and Early-Stage Care (Basic)',
 
     ...lesson
   };
+
+  // Check if user can access this lesson on mount
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!currentUser || !mockLesson.subsection) return;
+
+      try {
+        const subsectionNum = extractSubsectionNumber(mockLesson.subsection);
+        const unlockStatus = await checkSubsectionUnlock(currentUser.uid, subsectionNum);
+        setIsUnlocked(unlockStatus.isUnlocked);
+
+        if (unlockStatus.isCompleted) {
+          mockLesson.isCompleted = true;
+        }
+      } catch (error) {
+        console.error('Error checking lesson access:', error);
+        // Default to checking with userProfile data
+        if (userProfile) {
+          const canAccess = canAccessLesson(mockLesson.subsection, userProfile.progress);
+          setIsUnlocked(canAccess);
+        }
+      }
+    };
+
+    checkAccess();
+  }, [currentUser, mockLesson.subsection, userProfile]);
 
   const handleQuizReset = () => {
     setQuizAnswers({});
@@ -333,12 +379,99 @@ const LessonPage = ({ lesson, onComplete = () => { }, onNext = () => { }, onPrev
     }));
   };
 
+  // Check if all quiz questions are answered correctly
+  const canCompleteLesson = () => {
+    if (!mockLesson.quiz || mockLesson.quiz.length === 0) {
+      return true; // No quiz, can complete
+    }
+
+    return mockLesson.quiz.every((question, index) => {
+      const questionId = question.id || index;
+      const userAnswer = quizAnswers[questionId];
+      return userAnswer && userAnswer.isCorrect;
+    });
+  };
+
+  // Handle lesson completion
+  const handleLessonComplete = async () => {
+    if (!currentUser || !mockLesson.subsection) {
+      console.error('Cannot complete lesson: missing user or subsection data');
+      return;
+    }
+
+    if (!canCompleteLesson()) {
+      alert('Please complete the knowledge assessment correctly before finishing the lesson.');
+      return;
+    }
+
+    setIsCompleting(true);
+    setCompletionError(null);
+
+    try {
+      const subsectionNum = extractSubsectionNumber(mockLesson.subsection);
+
+      const completionData = {
+        subsection: subsectionNum,
+        category: mockLesson.category || course?.category || 'Basic Best Practices of Dementia Caregiving',
+        section: mockLesson.section || course?.section || 'Foundational Knowledge and Early-Stage Care (Basic)',
+        points: mockLesson.points || 10
+      };
+
+      const result = await completeSubsection(currentUser.uid, completionData);
+
+      // Refresh user profile to get updated progress
+      await refreshProfile();
+
+      setCompletionSuccess(true);
+      mockLesson.isCompleted = true;
+
+      // Show success message with next lesson info
+      const nextLessonInfo = result.nextSubsection ? `Next lesson: ${result.nextSubsection}` : 'Course completed!';
+      alert(`🎉 Lesson completed! You earned ${result.pointsEarned} points. ${nextLessonInfo}\n\nRedirecting back to course...`);
+
+      // Call the onComplete callback
+      onComplete(mockLesson, result);
+
+    } catch (error) {
+      console.error('Error completing lesson:', error);
+      setCompletionError(error.message);
+      alert('Error completing lesson. Please try again.');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  // Show access denied if lesson is locked
+  if (!isUnlocked) {
+    return (
+      <div className="lesson-page">
+        <div className="lesson-header">
+          <div className="lesson-breadcrumb">
+            <button onClick={onBack} className="btn btn-link">← Back to Course</button>
+          </div>
+          <h1 className="lesson-title">🔒 Lesson Locked</h1>
+        </div>
+        <div className="lesson-body">
+          <div className="content-section">
+            <h3>Complete Previous Lessons First</h3>
+            <p>This lesson is currently locked. Complete the previous lessons in order to unlock it.</p>
+            <p><strong>Current lesson:</strong> {mockLesson.title}</p>
+            <p><strong>Subsection:</strong> {mockLesson.subsection}</p>
+            <button className="btn btn-primary" onClick={onBack}>
+              ← Return to Course Overview
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="lesson-page">
       <div className="lesson-header">
         <div className="lesson-breadcrumb">
-          <a href="/courses">Courses</a> →
-          <a href="/course/1">Basic Best Practices of Dementia Caregiving</a> →
+          <button onClick={onBack} className="btn btn-link">Courses</button> →
+          <button onClick={onBack} className="btn btn-link">{course?.title || 'Course'}</button> →
           <span>Lesson {mockLesson.number}</span>
         </div>
         <h1 className="lesson-title">{mockLesson.title}</h1>
@@ -348,8 +481,23 @@ const LessonPage = ({ lesson, onComplete = () => { }, onNext = () => { }, onPrev
           <span className="lesson-status">
             {mockLesson.isCompleted ? '✅ Completed' : '📚 In Progress'}
           </span>
+          {mockLesson.subsection && (
+            <span className="lesson-subsection">Section: {mockLesson.subsection}</span>
+          )}
         </div>
       </div>
+
+      {completionError && (
+        <div className="alert alert-error">
+          <strong>Error:</strong> {completionError}
+        </div>
+      )}
+
+      {completionSuccess && (
+        <div className="alert alert-success">
+          <strong>🎉 Congratulations!</strong> You've completed this lesson successfully!
+        </div>
+      )}
 
       <div className="lesson-body">
         <div className="learn-content">
@@ -366,7 +514,9 @@ const LessonPage = ({ lesson, onComplete = () => { }, onNext = () => { }, onPrev
         lesson={mockLesson}
         onPrevious={onPrevious}
         onNext={onNext}
-        onComplete={onComplete}
+        onComplete={handleLessonComplete}
+        isCompleting={isCompleting}
+        canComplete={canCompleteLesson()}
       />
     </div>
   );
