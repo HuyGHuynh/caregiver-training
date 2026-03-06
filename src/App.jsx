@@ -11,7 +11,8 @@ function App() {
   const [showLogin, setShowLogin] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
-  
+  const [courseRefreshTrigger, setCourseRefreshTrigger] = useState(0);
+
   const { currentUser, logout } = useAuth();
 
   const [user, setUser] = useState({
@@ -31,6 +32,33 @@ function App() {
   const handleLessonSelect = (lesson) => {
     setSelectedLesson(lesson);
     setCurrentPage('lesson');
+  };
+
+  const handleLessonComplete = async (lesson, result) => {
+    console.log('🎉 Lesson completed:', lesson.title, result);
+
+    // Trigger course refresh to show updated progress
+    setCourseRefreshTrigger(prev => prev + 1);
+
+    // Show success notification
+    const nextSubsection = result.nextSubsection;
+    const pointsEarned = result.pointsEarned;
+
+    // Clear refresh trigger after 5 seconds
+    setTimeout(() => {
+      setCourseRefreshTrigger(0);
+    }, 5000);
+
+    // Redirect back to course page after a short delay
+    setTimeout(() => {
+      setCurrentPage('course');
+    }, 2000);
+
+    console.log(`✅ Next lesson unlocked: ${nextSubsection}`);
+  };
+
+  const handleBackToCourse = () => {
+    setCurrentPage('course');
   };
 
   const handleRegisterSuccess = (userData) => {
@@ -61,7 +89,7 @@ function App() {
     return (
       <FontSizeProvider>
         {showLogin ? (
-          <LoginPage 
+          <LoginPage
             onLoginSuccess={() => console.log('Logged in')}
             onNavigateToRegister={() => setShowLogin(false)}
           />
@@ -74,24 +102,34 @@ function App() {
       </FontSizeProvider>
     );
   }
-  
+
   return (
     <FontSizeProvider>
       <div className="App">
         {currentPage === 'profile' ? (
           <UserProfile user={user} onBack={() => setCurrentPage('home')} />
         ) : (
-          <MainLayout 
-            user={user} 
-            currentPage={currentPage} 
+          <MainLayout
+            user={user}
+            currentPage={currentPage}
             onNavigate={setCurrentPage}
             onSignOut={handleLogout}
           >
             <main className="app-main">
               {currentPage === 'home' && <HomePage user={user} onCourseSelect={handleCourseSelect} />}
               {currentPage === 'courses' && <CoursesPage onCourseSelect={handleCourseSelect} />}
-              {currentPage === 'course' && <CoursePage selectedCourse={selectedCourse} onStartLesson={handleLessonSelect} user={user} />}
-              {currentPage === 'lesson' && <LessonPage lesson={selectedLesson} />}
+              {currentPage === 'course' && <CoursePage
+                selectedCourse={selectedCourse}
+                onStartLesson={handleLessonSelect}
+                user={user}
+                refreshTrigger={courseRefreshTrigger}
+              />}
+              {currentPage === 'lesson' && <LessonPage
+                lesson={selectedLesson}
+                course={selectedCourse}
+                onComplete={handleLessonComplete}
+                onBack={handleBackToCourse}
+              />}
               {currentPage === 'progress' && <ProgressDashboard user={user} />}
             </main>
           </MainLayout>
