@@ -5,6 +5,41 @@
   margin: 0 auto;
 }
 
+/* Alert Styles */
+.alert {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid;
+}
+
+.alert-success {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: #4CAF50;
+  color: #2E7D32;
+}
+
+.alert-error {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: #F44336;
+  color: #C62828;
+}
+
+/* Button Link Style */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--primary-blue);
+  text-decoration: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
 /* Quiz Styles */
 .quiz-container {
   margin-top: var(--spacing-lg);
@@ -129,10 +164,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.1);
     opacity: 0.8;
@@ -143,6 +181,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -162,7 +201,8 @@
 
 .text-with-speaker .speaker-button {
   flex-shrink: 0;
-  margin-top: 2px; /* Align with text baseline */
+  margin-top: 2px;
+  /* Align with text baseline */
   z-index: 10;
   position: relative;
   pointer-events: auto;
@@ -194,9 +234,10 @@
   display: block;
   width: 100%;
 }
-  padding: var(--spacing-xl) 0;
-  border-bottom: 1px solid var(--border-light);
-  margin-bottom: var(--spacing-xl);
+
+padding: var(--spacing-xl) 0;
+border-bottom: 1px solid var(--border-light);
+margin-bottom: var(--spacing-xl);
 }
 
 .lesson-breadcrumb {
@@ -230,7 +271,8 @@
 
 .lesson-type,
 .lesson-duration,
-.lesson-status {
+.lesson-status,
+.lesson-subsection {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   font-weight: var(--font-weight-medium);
@@ -689,37 +731,37 @@
   .lesson-page {
     padding: 0;
   }
-  
+
   .lesson-header {
     padding: var(--spacing-lg) 0;
   }
-  
+
   .lesson-title {
     font-size: var(--font-size-2xl);
   }
-  
+
   .content-section {
     padding: var(--spacing-lg);
   }
-  
+
   .practice-section {
     padding: var(--spacing-lg);
   }
-  
+
   .text-input {
     flex-direction: column;
   }
-  
+
   .lesson-navigation {
     flex-direction: column;
     gap: var(--spacing-lg);
     text-align: center;
   }
-  
+
   .practice-navigation {
     flex-direction: column;
   }
-  
+
   .question-actions {
     flex-direction: column;
   }
