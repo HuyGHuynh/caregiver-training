@@ -207,10 +207,25 @@ const HomePage = ({ user, courses = [], categories = [], onCourseSelect }) => {
       level: 'Intermediate',
       progress: isNewUser ? 0 : Math.max(0, Math.min(((user?.completedLessons || 0) - 11) * 8, 100)), // Starts after basic course
       recommended: true
+    },
+    {
+      id: 3,
+      title: 'Advanced Dementia Caregiving Research',
+      category: 'Advanced Research',
+      description: 'Explore implementation science, AI-supported learning, and ethnocultural personalization in dementia caregiver training.',
+      icon: '🔬',
+      color: '#7B61FF',
+      lessonCount: 7,
+      totalLessons: 7,
+      duration: '5-7 weeks',
+      estimatedTime: '7-10 weeks',
+      level: 'Advanced',
+      progress: 0,
+      recommended: false
     }
   ];
 
-  const mockCategories = ['Basic Caregiving', 'Intermediate Care', 'Advanced Care', 'Safety & Environment'];
+  const mockCategories = ['Basic Caregiving', 'Intermediate Care', 'Advanced Research', 'Advanced Care', 'Safety & Environment'];
 
   return (
     <div className="home-page">

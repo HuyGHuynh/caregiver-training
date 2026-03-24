@@ -137,6 +137,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
 
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
+  const isAdvancedResearchCourse = selectedCourse?.id === 3;
+  const totalLessonsCount = isAdvancedResearchCourse ? 7 : isIntermediateCourse ? 13 : 11;
 
   // Course category for API calls
   const courseCategory = selectedCourse?.category || 'Basic Best Practices of Dementia Caregiving';
@@ -197,33 +199,39 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       }
     };
 
-    if (!isIntermediateCourse) {
+    if (!isIntermediateCourse && !isAdvancedResearchCourse) {
       loadQuestions();
     }
-  }, [isIntermediateCourse]);
+  }, [isIntermediateCourse, isAdvancedResearchCourse]);
 
   // Mock data - replace with real data
   const mockCourse = {
     id: selectedCourse?.id || 1,
-    title: isIntermediateCourse ? 'Intermediate Dementia Caregiving Knowledge' : 'Basic Best Practices of Dementia Caregiving',
+    title: isAdvancedResearchCourse
+      ? 'Advanced Dementia Caregiving Research'
+      : isIntermediateCourse
+        ? 'Intermediate Dementia Caregiving Knowledge'
+        : 'Basic Best Practices of Dementia Caregiving',
     category: 'Healthcare & Caregiving',
-    description: isIntermediateCourse
-      ? 'Advanced dementia caregiving strategies focusing on behavioral management, complex coordination, and specialized interventions for challenging situations.'
-      : 'Comprehensive training in dementia caregiving from foundational knowledge through advanced care strategies and specialized interventions.',
-    icon: isIntermediateCourse ? '🧠' : '🏥',
-    color: isIntermediateCourse ? '#00AF54' : '#1181b2',
-    totalLessons: isIntermediateCourse ? 13 : 11,
-    estimatedTime: isIntermediateCourse ? '10-14 weeks' : '8-12 weeks',
-    level: 'All Levels',
+    description: isAdvancedResearchCourse
+      ? 'Research-oriented dementia caregiving education covering implementation science, AI-supported learning, ethics, and caregiver health literacy.'
+      : isIntermediateCourse
+        ? 'Advanced dementia caregiving strategies focusing on behavioral management, complex coordination, and specialized interventions for challenging situations.'
+        : 'Comprehensive training in dementia caregiving from foundational knowledge through advanced care strategies and specialized interventions.',
+    icon: isAdvancedResearchCourse ? '🔬' : isIntermediateCourse ? '🧠' : '🏥',
+    color: isAdvancedResearchCourse ? '#7B61FF' : isIntermediateCourse ? '#00AF54' : '#1181b2',
+    totalLessons: totalLessonsCount,
+    estimatedTime: isAdvancedResearchCourse ? '7-10 weeks' : isIntermediateCourse ? '10-14 weeks' : '8-12 weeks',
+    level: isAdvancedResearchCourse ? 'Advanced' : 'All Levels',
     ...selectedCourse
   };
 
   const mockProgress = {
     percentage: courseProgress ? courseProgress.progress : 0,
     completed: courseProgress ? courseProgress.completedSubsections?.length || 0 : 0,
-    remaining: isIntermediateCourse ? (13 - (courseProgress?.completedSubsections?.length || 0)) : (11 - (courseProgress?.completedSubsections?.length || 0)),
+    remaining: totalLessonsCount - (courseProgress?.completedSubsections?.length || 0),
     pointsEarned: userProfile ? userProfile.progress?.totalPoints || 0 : 0,
-    currentLesson: courseProgress ? Math.min((courseProgress.completedSubsections?.length || 0) + 1, isIntermediateCourse ? 13 : 11) : 1
+    currentLesson: courseProgress ? Math.min((courseProgress.completedSubsections?.length || 0) + 1, totalLessonsCount) : 1
   };
 
   // Calculate module completion based on user progress
@@ -255,6 +263,25 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       title: 'Complex Coordination & Risk (Advanced)',
       totalLessons: 5,
       completedLessons: calculateModuleCompletion(3, 5, ['3.1', '3.2', '3.3', '3.4', '3.5'])
+    }
+  ] : isAdvancedResearchCourse ? [
+    {
+      id: 1,
+      title: 'Research Foundations',
+      totalLessons: 3,
+      completedLessons: calculateModuleCompletion(1, 3, ['1.1', '1.2', '1.3'])
+    },
+    {
+      id: 2,
+      title: 'Technology, Ethics, and Practice',
+      totalLessons: 2,
+      completedLessons: calculateModuleCompletion(2, 2, ['1.4', '1.5'])
+    },
+    {
+      id: 3,
+      title: 'Caregiver Systems & Simulation',
+      totalLessons: 2,
+      completedLessons: calculateModuleCompletion(3, 2, ['1.6', '1.7'])
     }
   ] : [
     {
@@ -488,6 +515,119 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       completed: false,
       isAvailable: false,
       skills: ['Financial Protection', 'Fraud Prevention', 'Legal Safeguards']
+    }
+  ] : isAdvancedResearchCourse ? [
+    {
+      id: 1,
+      number: 1,
+      moduleId: 1,
+      title: 'Neuro-Educational Frameworks for Informal Caregivers',
+      description: 'Study cognitive science-informed models for structuring caregiver education and retention.',
+      type: 'Research Seminar',
+      duration: 35,
+      points: 120,
+      completed: isLessonCompleted('1.1'),
+      isAvailable: isLessonAvailable('1.1'),
+      subsection: '1.1',
+      category: courseCategory,
+      section: 'Research Foundations',
+      skills: ['Learning Theory', 'Caregiver Education', 'Neuroscience Basics']
+    },
+    {
+      id: 2,
+      number: 2,
+      moduleId: 1,
+      title: 'Implementation Science in Comprehensive Dementia Care Models',
+      description: 'Apply implementation science principles to integrate caregiver interventions into real-world care systems.',
+      type: 'Applied Frameworks',
+      duration: 40,
+      points: 140,
+      completed: isLessonCompleted('1.2'),
+      isAvailable: isLessonAvailable('1.2'),
+      subsection: '1.2',
+      category: courseCategory,
+      section: 'Research Foundations',
+      skills: ['Implementation Science', 'Program Design', 'Care Model Integration']
+    },
+    {
+      id: 3,
+      number: 3,
+      moduleId: 1,
+      title: 'Ethnocultural Personalization of Caregiver Interventions',
+      description: 'Design culturally responsive caregiver strategies across diverse family and community settings.',
+      type: 'Case-Based Research',
+      duration: 35,
+      points: 125,
+      completed: isLessonCompleted('1.3'),
+      isAvailable: isLessonAvailable('1.3'),
+      subsection: '1.3',
+      category: courseCategory,
+      section: 'Research Foundations',
+      skills: ['Cultural Responsiveness', 'Intervention Design', 'Family-Centered Care']
+    },
+    {
+      id: 4,
+      number: 4,
+      moduleId: 2,
+      title: 'AI-Driven Adaptive Learning for Caregiver Training',
+      description: 'Examine adaptive learning systems and analytics for personalized caregiver training pathways.',
+      type: 'Technology Lab',
+      duration: 45,
+      points: 160,
+      completed: isLessonCompleted('1.4'),
+      isAvailable: isLessonAvailable('1.4'),
+      subsection: '1.4',
+      category: courseCategory,
+      section: 'Technology, Ethics, and Practice',
+      skills: ['AI in Education', 'Adaptive Learning', 'Data-Informed Personalization']
+    },
+    {
+      id: 5,
+      number: 5,
+      moduleId: 2,
+      title: 'Ethical Implications of Assistive "Robotherapy" Training',
+      description: 'Evaluate ethical risks and safeguards when deploying assistive robotics in caregiver learning contexts.',
+      type: 'Ethics Review',
+      duration: 40,
+      points: 145,
+      completed: isLessonCompleted('1.5'),
+      isAvailable: isLessonAvailable('1.5'),
+      subsection: '1.5',
+      category: courseCategory,
+      section: 'Technology, Ethics, and Practice',
+      skills: ['AI Ethics', 'Assistive Robotics', 'Risk-Benefit Analysis']
+    },
+    {
+      id: 6,
+      number: 6,
+      moduleId: 3,
+      title: 'Financial and Legal Health Literacy for Family Caregivers',
+      description: 'Build practical literacy in legal planning, healthcare finance, and caregiver rights navigation.',
+      type: 'Policy & Literacy',
+      duration: 35,
+      points: 130,
+      completed: isLessonCompleted('1.6'),
+      isAvailable: isLessonAvailable('1.6'),
+      subsection: '1.6',
+      category: courseCategory,
+      section: 'Caregiver Systems & Simulation',
+      skills: ['Health Literacy', 'Caregiver Rights', 'Financial Planning']
+    },
+    {
+      id: 7,
+      number: 7,
+      moduleId: 3,
+      title: 'Virtual Reality (VR) Simulation for Caregiver Scenario Training',
+      description: 'Use immersive simulation methods to strengthen decision-making and communication in high-stress care scenarios.',
+      type: 'Simulation Lab',
+      duration: 50,
+      points: 180,
+      completed: isLessonCompleted('1.7'),
+      isAvailable: isLessonAvailable('1.7'),
+      subsection: '1.7',
+      category: courseCategory,
+      section: 'Caregiver Systems & Simulation',
+      skills: ['VR Simulation', 'Decision-Making', 'Scenario-Based Training']
     }
   ] : [
     // Module 1: Foundational Knowledge and Early-Stage Care (Basic)

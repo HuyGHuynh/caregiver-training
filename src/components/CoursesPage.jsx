@@ -80,10 +80,25 @@ const CoursesPage = ({ courses = [], categories = [], onCourseSelect }) => {
       level: 'Intermediate',
       progress: 0,
       recommended: true
+    },
+    {
+      id: 3,
+      title: 'Advanced Dementia Caregiving Research',
+      category: 'Advanced Research',
+      description: 'Explore research-focused caregiver training, implementation science, and emerging technologies in dementia care.',
+      icon: '🔬',
+      color: '#7B61FF',
+      lessonCount: 7,
+      totalLessons: 7,
+      duration: '5-7 weeks',
+      estimatedTime: '7-10 weeks',
+      level: 'Advanced',
+      progress: 0,
+      recommended: false
     }
   ];
 
-  const mockCategories = ['Basic Caregiving', 'Intermediate Care'];
+  const mockCategories = ['Basic Caregiving', 'Intermediate Care', 'Advanced Research'];
 
   return (
     <div className="home-page">
