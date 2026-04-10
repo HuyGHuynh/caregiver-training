@@ -128,15 +128,10 @@ function App() {
     const nextSubsection = result.nextSubsection;
     const pointsEarned = result.pointsEarned;
 
-    // Clear refresh trigger after 5 seconds
+    // Clear refresh trigger after the UI has had time to update
     setTimeout(() => {
       setCourseRefreshTrigger(0);
     }, 5000);
-
-    // Redirect back to course page after a short delay
-    setTimeout(() => {
-      setCurrentPage('course');
-    }, 2000);
 
     console.log(`✅ Next lesson unlocked: ${nextSubsection}`);
   };

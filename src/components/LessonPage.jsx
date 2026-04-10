@@ -645,9 +645,7 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
 
   const handleContinueAfterAward = () => {
     setShowAwardPopup(false);
-    if (completionResult) {
-      onComplete(mockLesson, completionResult);
-    }
+    onBack();
   };
 
   // Show access denied if lesson is locked
