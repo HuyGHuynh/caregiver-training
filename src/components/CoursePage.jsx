@@ -184,6 +184,7 @@ const CourseNavigation = ({ modules, activeModule, onModuleChange }) => (
 const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries = [], refreshTrigger = 0 }) => {
   const [activeModule, setActiveModule] = useState(1);
   const [lesson11Questions, setLesson11Questions] = useState([]);
+  const [lesson12Questions, setLesson12Questions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState(null);
   const [availableSubsections, setAvailableSubsections] = useState([]);
@@ -207,17 +208,25 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
     setProgressLoading(false);
   }, [progressEntries, selectedCourse?.id]);
 
-  // Fetch questions for lesson 1.1 on mount
+  // Fetch real quiz questions for basic lessons on mount
   useEffect(() => {
     const loadQuestions = async () => {
       setLoading(true);
       try {
-        const questions = await fetchQuestions({ subsection: '1.1' });
-        // Shuffle questions and limit to 4
-        const shuffledQuestions = questions.sort(() => 0.5 - Math.random());
-        const limitedQuestions = shuffledQuestions.slice(0, 5);
-        setLesson11Questions(limitedQuestions);
-        console.log(`Loaded ${limitedQuestions.length} random questions:`, limitedQuestions);
+        const loadQuizQuestions = async (subsection) => {
+          const questions = await fetchQuestions({ subsection });
+          const shuffledQuestions = questions.sort(() => 0.5 - Math.random());
+          return shuffledQuestions.slice(0, 5);
+        };
+
+        const [lesson11Quiz, lesson12Quiz] = await Promise.all([
+          loadQuizQuestions('1.1'),
+          loadQuizQuestions('1.2')
+        ]);
+
+        setLesson11Questions(lesson11Quiz);
+        setLesson12Questions(lesson12Quiz);
+        console.log(`Loaded ${lesson11Quiz.length} questions for 1.1 and ${lesson12Quiz.length} questions for 1.2`);
       } catch (error) {
         console.error('Error loading questions:', error);
       } finally {
@@ -683,7 +692,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '1.2',
       category: courseCategory,
       section: 'Foundational Knowledge and Early-Stage Care (Basic)',
-      skills: ['Self-Care', 'Support Systems', 'Stress Management']
+      quiz: lesson12Questions
     },
     {
       id: 3,
