@@ -5,6 +5,7 @@ import AIChatbot from './AIChatbot';
 import { useAuth } from '../contexts/AuthContext';
 import {
   createProgress,
+  getLessonContent,
   extractSubsectionNumber,
 } from '../services/api';
 
@@ -253,17 +254,82 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset, showAI
   );
 };
 
-const LessonContent = ({ lesson, onQuizAnswer, quizAnswers, onQuizReset, showAIChatbot = true }) => {
-  // Check if this is lesson 1.1 with quiz data
-  if (lesson?.id === 1 && lesson?.quiz) {
-    return (
-      <div className="lesson-content">
+const LessonContent = ({ lesson, lessonContent, contentLoading = false, onQuizAnswer, quizAnswers, onQuizReset, showAIChatbot = true }) => {
+  const contentSummary = lessonContent?.contentSummary || lesson?.contentSummary;
+
+  const renderSummary = () => {
+    if (contentLoading) {
+      return (
         <div className="content-section">
-          <h3>Understanding Dementia and Disease Progression</h3>
+          <h3>{lesson?.title || 'Lesson Overview'}</h3>
           <div className="content-text">
-            <p>{lesson.description}</p>
+            <p>Loading lesson summary...</p>
           </div>
         </div>
+      );
+    }
+
+    if (!contentSummary) {
+      return null;
+    }
+
+    return (
+      <div className="content-section">
+        <h3>{lesson?.title || 'Lesson Overview'}</h3>
+        <div className="content-text">
+          {contentSummary.overview && <p>{contentSummary.overview}</p>}
+
+          {Array.isArray(contentSummary.learningObjectives) && contentSummary.learningObjectives.length > 0 && (
+            <>
+              <h4>Learning Objectives</h4>
+              <ul className="summary-list summary-list-bullets">
+                {contentSummary.learningObjectives.map((objective, index) => (
+                  <li key={index}>{objective}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {Array.isArray(contentSummary.outcomes) && contentSummary.outcomes.length > 0 && (
+            <>
+              <h4>Outcomes</h4>
+              <ul className="summary-list summary-list-bullets">
+                {contentSummary.outcomes.map((outcome, index) => (
+                  <li key={index}>{outcome}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {Array.isArray(contentSummary.keyKnowledge) && contentSummary.keyKnowledge.length > 0 && (
+            <>
+              <h4>Key Knowledge</h4>
+              <div className="summary-key-knowledge">
+                {contentSummary.keyKnowledge.map((knowledge, index) => (
+                  <div key={index} className="summary-key-knowledge-item">
+                    <span className="step-number">{index + 1}.</span>
+                    <span className="step-text">{knowledge}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (lesson?.quiz) {
+    return (
+      <div className="lesson-content">
+        {renderSummary() || (
+          <div className="content-section">
+            <h3>{lesson.title || 'Lesson Overview'}</h3>
+            <div className="content-text">
+              <p>{lesson.description}</p>
+            </div>
+          </div>
+        )}
 
         <KnowledgeAssessment
           questions={lesson.quiz}
@@ -381,6 +447,8 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
   const [showAwardPopup, setShowAwardPopup] = useState(false);
   const [showSelfCareActivities, setShowSelfCareActivities] = useState(false);
   const [completionResult, setCompletionResult] = useState(null);
+  const [lessonContent, setLessonContent] = useState(null);
+  const [contentLoading, setContentLoading] = useState(false);
 
   const { currentUser, userProfile, refreshProfile } = useAuth();
 
@@ -423,6 +491,24 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
   };
 
   const resolvedSubsection = resolveLessonSubsection(mockLesson);
+  useEffect(() => {
+    const loadLessonContent = async () => {
+      setContentLoading(true);
+      try {
+        const content = await getLessonContent(resolvedSubsection);
+        setLessonContent(content);
+      } catch (error) {
+        console.error('Error loading lesson content:', error);
+        setLessonContent(null);
+      } finally {
+        setContentLoading(false);
+      }
+    };
+
+    if (resolvedSubsection) {
+      loadLessonContent();
+    }
+  }, [resolvedSubsection]);
 
   // Check if user can access this lesson on mount
   useEffect(() => {
@@ -626,6 +712,8 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
         <div className="learn-content">
           <LessonContent
             lesson={mockLesson}
+            lessonContent={lessonContent}
+            contentLoading={contentLoading}
             onQuizAnswer={handleQuizAnswer}
             quizAnswers={quizAnswers}
             onQuizReset={handleQuizReset}

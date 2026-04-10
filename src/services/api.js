@@ -232,6 +232,35 @@ export const getProgress = async (firebaseUid) => {
   }
 };
 
+// Get lesson content by lesson key
+export const getLessonContent = async (lessonKey) => {
+  try {
+    const useSubsectionLookup = /^\d+\.\d+$/.test(String(lessonKey));
+    const url = useSubsectionLookup
+      ? `${API_BASE_URL}/api/lessons/by-subsection/${encodeURIComponent(lessonKey)}`
+      : `${API_BASE_URL}/api/lessons/${encodeURIComponent(lessonKey)}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      return result.data;
+    }
+
+    throw new Error(result.error || 'Failed to fetch lesson content');
+  } catch (error) {
+    console.error('Error fetching lesson content:', error);
+    throw error;
+  }
+};
+
 const COURSE_PROGRESS_MAP = {
   1: {
     title: 'Basic Best Practices of Dementia Caregiving',
