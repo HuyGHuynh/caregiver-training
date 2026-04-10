@@ -27,6 +27,23 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
+        const existingProgress = await Progress.findOne({
+            userId: user._id,
+            section,
+            subsection,
+            level,
+            completed: true
+        });
+
+        if (existingProgress) {
+            return res.status(200).json({
+                success: true,
+                created: false,
+                rewardEarned: 0,
+                data: existingProgress
+            });
+        }
+
         const newProgress = new Progress({
             userId: user._id,
             section,
@@ -45,6 +62,8 @@ router.post('/', async (req, res) => {
 
         res.status(201).json({
             success: true,
+            created: true,
+            rewardEarned: xpEarned,
             data: savedProgress
         });
     } catch (error) {

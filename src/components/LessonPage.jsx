@@ -631,7 +631,7 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
 
       // Trigger parent onComplete handler
       onComplete(resolvedSubsection, {
-        points: xpEarned,
+        points: result?.rewardEarned ?? 0,
         nextSubsection: result.nextSubsection
       });
 
@@ -734,9 +734,11 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
           <div className="award-popup">
             <div className="award-trophy">🏆</div>
             <h2 id="award-title" className="award-title">Lesson Completed!</h2>
-            <p className="award-points">
-              You earned <strong>{completionResult?.pointsEarned || mockLesson.points || 0} points</strong>.
-            </p>
+            {((completionResult?.rewardEarned ?? 0) > 0) && (
+              <p className="award-points">
+                You earned <strong>{completionResult.rewardEarned} points</strong>.
+              </p>
+            )}
             <p className="self-care-message">
               Great work today. Caregiving is meaningful and demanding—please take a moment for your own self-care too. 💙
             </p>

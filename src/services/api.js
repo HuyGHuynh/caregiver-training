@@ -201,7 +201,7 @@ export const createProgress = async (progressData) => {
 
     const result = await response.json();
     if (result.success) {
-      return result.data;
+      return result;
     } else {
       throw new Error(result.error || 'Failed to create progress entry');
     }
