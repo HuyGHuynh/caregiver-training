@@ -188,10 +188,11 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       setLoading(true);
       try {
         const questions = await fetchQuestions({ subsection: '1.1' });
-        // Limit to first 4 questions for now
-        const limitedQuestions = questions.slice(0, 4);
+        // Shuffle questions and limit to 4
+        const shuffledQuestions = questions.sort(() => 0.5 - Math.random());
+        const limitedQuestions = shuffledQuestions.slice(0, 5);
         setLesson11Questions(limitedQuestions);
-        console.log(`Loaded ${limitedQuestions.length} questions (limited to first 4):`, limitedQuestions);
+        console.log(`Loaded ${limitedQuestions.length} random questions:`, limitedQuestions);
       } catch (error) {
         console.error('Error loading questions:', error);
       } finally {
