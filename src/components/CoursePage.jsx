@@ -1,13 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { fetchQuestions } from '../services/api';
-import {
-  getCourseProgress,
-  getAvailableSubsections,
-  canAccessLesson,
-  extractSubsectionNumber
-} from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 import './CoursePage.css';
+
+const extractSubsectionNumber = (subsection) => {
+  if (!subsection) return '';
+
+  const subsectionText = String(subsection);
+  const match = subsectionText.match(/^(\d+\.\d+)/);
+  return match ? match[1] : subsectionText;
+};
+
+const COURSE_SUBSECTIONS = {
+  1: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3'],
+  2: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5'],
+  3: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']
+};
+
+const getUniqueCompletedEntries = (entries = [], subsections = []) => {
+  const uniqueEntries = new Map();
+
+  entries.forEach(entry => {
+    if (entry?.completed === false) return;
+
+    const subsection = extractSubsectionNumber(entry?.subsection);
+    if (subsections.length > 0 && !subsections.includes(subsection)) return;
+
+    const current = uniqueEntries.get(subsection);
+    const currentTime = current ? new Date(current.completedAt || current.createdAt || 0).getTime() : 0;
+    const nextTime = new Date(entry.completedAt || entry.createdAt || 0).getTime();
+
+    if (!current || nextTime >= currentTime) {
+      uniqueEntries.set(subsection, entry);
+    }
+  });
+
+  return Array.from(uniqueEntries.values());
+};
+
+const buildCourseProgress = (courseId, progressEntries = []) => {
+  const subsections = COURSE_SUBSECTIONS[courseId] || [];
+  const completedEntries = getUniqueCompletedEntries(progressEntries, subsections);
+  const completedSubsections = completedEntries.map(entry => extractSubsectionNumber(entry.subsection));
+  const completedCount = completedSubsections.length;
+  const totalLessons = subsections.length || 1;
+
+  return {
+    completedSubsections,
+    progress: Math.min(Math.round((completedCount / totalLessons) * 100), 100),
+    isStarted: completedCount > 0,
+    isCompleted: completedCount >= totalLessons,
+    pointsEarned: completedEntries.reduce((sum, entry) => sum + (entry.xpEarned || 0), 0),
+    currentSubsection: subsections.find(subsection => !completedSubsections.includes(subsection)) || subsections[subsections.length - 1] || '1.1'
+  };
+};
+
+const buildAvailableSubsections = (courseId, progressEntries = []) => {
+  const subsections = COURSE_SUBSECTIONS[courseId] || [];
+  const completed = new Set(getUniqueCompletedEntries(progressEntries, subsections).map(entry => extractSubsectionNumber(entry.subsection)));
+
+  return subsections.map((subsection, index) => ({
+    subsection,
+    isCompleted: completed.has(subsection),
+    isUnlocked: index === 0 || completed.has(subsections[index - 1])
+  }));
+};
 
 const LessonItem = ({ lesson, courseProgress, onStartLesson }) => {
   const isCompleted = lesson.completed;
@@ -125,15 +181,13 @@ const CourseNavigation = ({ modules, activeModule, onModuleChange }) => (
   </div>
 );
 
-const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTrigger = 0 }) => {
+const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries = [], refreshTrigger = 0 }) => {
   const [activeModule, setActiveModule] = useState(1);
   const [lesson11Questions, setLesson11Questions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState(null);
   const [availableSubsections, setAvailableSubsections] = useState([]);
   const [progressLoading, setProgressLoading] = useState(true);
-
-  const { currentUser, userProfile } = useAuth();
 
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
@@ -143,44 +197,15 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
   // Course category for API calls
   const courseCategory = selectedCourse?.category || 'Basic Best Practices of Dementia Caregiving';
 
-  // Fetch course progress and available subsections
-  const loadCourseData = async () => {
-    if (!currentUser) {
-      setProgressLoading(false);
-      return;
-    }
-
-    setProgressLoading(true);
-    try {
-      // Fetch course progress
-      const progress = await getCourseProgress(currentUser.uid, courseCategory);
-      setCourseProgress(progress);
-
-      // Fetch available subsections
-      const subsections = await getAvailableSubsections(currentUser.uid, courseCategory);
-      setAvailableSubsections(subsections.subsections || []);
-
-      console.log('📊 Course progress updated:', progress);
-      console.log('🔓 Available subsections:', subsections.subsections);
-    } catch (error) {
-      console.error('Error loading course data:', error);
-      // Use fallback data from userProfile if API fails
-      if (userProfile) {
-        setCourseProgress({
-          category: courseCategory,
-          completedSubsections: userProfile.progress?.completedSubsections || [],
-          progress: 0,
-          isStarted: userProfile.progress?.lessonsCompleted > 0
-        });
-      }
-    } finally {
-      setProgressLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadCourseData();
-  }, [currentUser, courseCategory, userProfile]);
+    const courseId = selectedCourse?.id || 1;
+    const progress = buildCourseProgress(courseId, progressEntries);
+    const subsections = buildAvailableSubsections(courseId, progressEntries);
+
+    setCourseProgress(progress);
+    setAvailableSubsections(subsections);
+    setProgressLoading(false);
+  }, [progressEntries, selectedCourse?.id]);
 
   // Fetch questions for lesson 1.1 on mount
   useEffect(() => {
@@ -231,7 +256,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
     percentage: courseProgress ? courseProgress.progress : 0,
     completed: courseProgress ? courseProgress.completedSubsections?.length || 0 : 0,
     remaining: totalLessonsCount - (courseProgress?.completedSubsections?.length || 0),
-    pointsEarned: userProfile ? userProfile.progress?.totalPoints || 0 : 0,
+    pointsEarned: courseProgress ? courseProgress.pointsEarned || 0 : 0,
     currentLesson: courseProgress ? Math.min((courseProgress.completedSubsections?.length || 0) + 1, totalLessonsCount) : 1
   };
 
@@ -314,16 +339,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
 
   // Helper function to determine if a lesson is available
   const isLessonAvailable = (lessonSubsection) => {
-    if (!currentUser) return lessonSubsection === '1.1'; // Only first lesson for guest users
-
-    if (userProfile && userProfile.progress) {
-      return canAccessLesson(lessonSubsection, userProfile.progress);
-    }
-
-    // Check from availableSubsections data
     const subsectionNum = extractSubsectionNumber(lessonSubsection);
     const subsectionData = availableSubsections.find(s => s.subsection === subsectionNum);
-    return subsectionData ? subsectionData.isUnlocked : lessonSubsection === '1.1';
+    if (subsectionData) {
+      return subsectionData.isUnlocked;
+    }
+
+    return lessonSubsection === '1.1';
   };
 
   const mockLessons = isIntermediateCourse ? [

@@ -4,11 +4,35 @@ import './LessonPage.css';
 import AIChatbot from './AIChatbot';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  completeSubsection,
-  checkSubsectionUnlock,
+  createProgress,
   extractSubsectionNumber,
-  canAccessLesson
 } from '../services/api';
+
+const canAccessLessonFromEntries = (lessonSubsection, progressEntries = []) => {
+  const subsectionNum = extractSubsectionNumber(lessonSubsection);
+  if (subsectionNum === '1.1') return true;
+
+  const completedSubsections = Array.from(new Set(
+    progressEntries
+      .filter(entry => entry?.completed !== false)
+      .map(entry => extractSubsectionNumber(entry?.subsection))
+      .filter(Boolean)
+  ));
+
+  const [section, sub] = subsectionNum.split('.').map(Number);
+
+  if (sub > 1) {
+    const previousSubsection = `${section}.${sub - 1}`;
+    return completedSubsections.includes(previousSubsection);
+  }
+
+  if (section > 1) {
+    const previousSection = `${section - 1}.`;
+    return completedSubsections.some(completed => completed.startsWith(previousSection));
+  }
+
+  return false;
+};
 
 const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset, showAIChatbot = true }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -348,7 +372,7 @@ const LessonNavigation = ({ lesson, onPrevious, onNext, onComplete, isCompleting
   </div>
 );
 
-const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }, onPrevious = () => { }, onBack = () => { } }) => {
+const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => { }, onNext = () => { }, onPrevious = () => { }, onBack = () => { } }) => {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [isCompleting, setIsCompleting] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(true);
@@ -403,28 +427,14 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
   // Check if user can access this lesson on mount
   useEffect(() => {
     const checkAccess = async () => {
-      if (!currentUser || !resolvedSubsection) return;
+      if (!resolvedSubsection) return;
 
-      try {
-        const subsectionNum = extractSubsectionNumber(resolvedSubsection);
-        const unlockStatus = await checkSubsectionUnlock(currentUser.uid, subsectionNum);
-        setIsUnlocked(unlockStatus.isUnlocked);
-
-        if (unlockStatus.isCompleted) {
-          mockLesson.isCompleted = true;
-        }
-      } catch (error) {
-        console.error('Error checking lesson access:', error);
-        // Default to checking with userProfile data
-        if (userProfile) {
-          const canAccess = canAccessLesson(resolvedSubsection, userProfile.progress);
-          setIsUnlocked(canAccess);
-        }
-      }
+      const canAccess = canAccessLessonFromEntries(resolvedSubsection, progressEntries);
+      setIsUnlocked(canAccess);
     };
 
     checkAccess();
-  }, [currentUser, resolvedSubsection, userProfile]);
+  }, [resolvedSubsection, progressEntries]);
 
   const handleQuizReset = () => {
     setQuizAnswers({});
@@ -498,52 +508,50 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
   const handleLessonComplete = async () => {
     if (!currentUser) {
       console.error('Cannot complete lesson: missing user data');
-      return;
-    }
-
-    if (!resolvedSubsection) {
-      const message = 'Cannot complete this lesson because section data is missing. Please reload and try again.';
-      console.error('Cannot complete lesson: missing subsection data');
-      setCompletionError(message);
-      alert(message);
-      return;
-    }
-
-    if (!canCompleteLesson()) {
-      alert('Please complete the knowledge assessment correctly before finishing the lesson.');
+      setCompletionError('You must be logged in to complete a lesson.');
       return;
     }
 
     setIsCompleting(true);
     setCompletionError(null);
+    setCompletionSuccess(false);
 
     try {
-      const subsectionNum = extractSubsectionNumber(resolvedSubsection);
+      const totalQuestions = mockLesson.quiz?.length || 0;
+      const correctAnswers = Object.values(quizAnswers).filter(a => a.isCorrect).length;
+      const scorePercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 100;
+      const xpEarned = 10 + (correctAnswers * 5); // 10 base XP + 5 for each correct answer
 
-      const completionData = {
-        subsection: subsectionNum,
-        category: mockLesson.category || course?.category || 'Basic Best Practices of Dementia Caregiving',
-        section: mockLesson.section || course?.section || 'Foundational Knowledge and Early-Stage Care (Basic)',
-        points: mockLesson.points || 10
+      const progressData = {
+        firebaseUid: currentUser.uid,
+        section: mockLesson.section,
+        subsection: resolvedSubsection,
+        level: course?.level || 'Basic',
+        totalQuestions,
+        correctAnswers,
+        scorePercentage,
+        completed: true,
+        xpEarned
       };
 
-      const result = await completeSubsection(currentUser.uid, completionData);
+      const result = await createProgress(progressData);
 
-      // Show award immediately after completion succeeds
+      setCompletionResult(result);
       setCompletionSuccess(true);
       setShowAwardPopup(true);
-      setCompletionResult(result);
-      mockLesson.isCompleted = true;
 
-      // Refresh user profile in background (do not block trophy popup)
-      refreshProfile().catch((refreshError) => {
-        console.error('Profile refresh failed after completion:', refreshError);
+      // Refresh user profile to get latest progress
+      await refreshProfile();
+
+      // Trigger parent onComplete handler
+      onComplete(resolvedSubsection, {
+        points: xpEarned,
+        nextSubsection: result.nextSubsection
       });
 
     } catch (error) {
       console.error('Error completing lesson:', error);
-      setCompletionError(error.message);
-      alert('Error completing lesson. Please try again.');
+      setCompletionError(error.message || 'An unexpected error occurred.');
     } finally {
       setIsCompleting(false);
     }

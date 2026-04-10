@@ -34,16 +34,7 @@ router.post('/', async (req, res) => {
                 firebaseUid,
                 email,
                 displayName: displayName || '',
-                photoURL: photoURL || null,
-                progress: {
-                    completedSubsections: [],
-                    currentSubsection: '1.1',
-                    lessonsCompleted: 0,
-                    totalPoints: 0,
-                    streak: 0,
-                    lastStreakDate: null
-                },
-                courseProgress: []
+                photoURL: photoURL || null
             });
             await user.save();
             console.log('New user created successfully');

@@ -2,6 +2,88 @@ import React, { useState, useEffect } from 'react';
 import './HomePage.css';
 import { getRandomQuote } from './quotes';
 
+const extractSubsectionNumber = (subsection) => {
+  if (!subsection) return '';
+
+  const subsectionText = String(subsection);
+  const match = subsectionText.match(/^(\d+\.\d+)/);
+  return match ? match[1] : subsectionText;
+};
+
+const COURSE_DEFINITIONS = [
+  {
+    id: 1,
+    title: 'Basic Best Practices of Dementia Caregiving',
+    category: 'Basic Caregiving',
+    description: 'Master fundamental dementia care principles including communication, daily routines, and safety measures.',
+    icon: '🏥',
+    color: '#4285F4',
+    lessonCount: 11,
+    duration: '4-6 weeks',
+    estimatedTime: '8-12 weeks',
+    level: 'Beginner',
+    recommended: true,
+    subsections: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3']
+  },
+  {
+    id: 2,
+    title: 'Intermediate Dementia Caregiving Knowledge',
+    category: 'Intermediate Care',
+    description: 'Advanced techniques for managing challenging behaviors, medication assistance, and specialized care approaches.',
+    icon: '🧠',
+    color: '#00AF54',
+    lessonCount: 13,
+    duration: '6-8 weeks',
+    estimatedTime: '10-14 weeks',
+    level: 'Intermediate',
+    recommended: true,
+    subsections: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5']
+  },
+  {
+    id: 3,
+    title: 'Advanced Dementia Caregiving Research',
+    category: 'Advanced Research',
+    description: 'Explore implementation science, AI-supported learning, and ethnocultural personalization in dementia caregiver training.',
+    icon: '🔬',
+    color: '#7B61FF',
+    lessonCount: 7,
+    duration: '5-7 weeks',
+    estimatedTime: '7-10 weeks',
+    level: 'Advanced',
+    recommended: false,
+    subsections: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']
+  }
+];
+
+const buildCourseProgress = (course, progressEntries = []) => {
+  const completedSubsections = new Map();
+
+  progressEntries.forEach(entry => {
+    if (entry?.completed === false) return;
+
+    const subsection = extractSubsectionNumber(entry?.subsection);
+    if (!course.subsections.includes(subsection)) return;
+
+    const current = completedSubsections.get(subsection);
+    const currentTime = current ? new Date(current.completedAt || current.createdAt || 0).getTime() : 0;
+    const nextTime = new Date(entry.completedAt || entry.createdAt || 0).getTime();
+
+    if (!current || nextTime >= currentTime) {
+      completedSubsections.set(subsection, entry);
+    }
+  });
+
+  const completedLessons = completedSubsections.size;
+  const progress = course.lessonCount > 0 ? Math.min(Math.round((completedLessons / course.lessonCount) * 100), 100) : 0;
+
+  return {
+    ...course,
+    completedLessons,
+    progress,
+    isCompleted: progress >= 100
+  };
+};
+
 const CourseCard = ({ course, onCourseSelect }) => (
   <div className="course-card">
     <div className="course-image">
@@ -29,8 +111,8 @@ const CourseCard = ({ course, onCourseSelect }) => (
       </div>
       <div className="course-progress">
         <div className="progress-bar">
-          <div 
-            className="progress-fill" 
+          <div
+            className="progress-fill"
             style={{ width: `${course.progress || 0}%` }}
           ></div>
         </div>
@@ -40,7 +122,7 @@ const CourseCard = ({ course, onCourseSelect }) => (
       </div>
     </div>
     <div className="course-actions">
-      <button 
+      <button
         className="btn btn-primary"
         onClick={() => onCourseSelect(course)}
       >
@@ -53,12 +135,12 @@ const CourseCard = ({ course, onCourseSelect }) => (
 const HeroSection = ({ user }) => {
   const isNewUser = !user?.completedLessons || user.completedLessons === 0;
   const [dailyQuote, setDailyQuote] = useState('');
-  
+
   useEffect(() => {
     // Set a random quote when the component loads
     setDailyQuote(getRandomQuote());
   }, []);
-  
+
   return (
     <section className="hero-section">
       <div className="hero-content">
@@ -71,7 +153,7 @@ const HeroSection = ({ user }) => {
           {isNewUser ? `Welcome to EduPlatform, ${user?.name || 'Student'}! 👋` : `Welcome back, ${user?.name || 'Student'}! 👋`}
         </h1>
         <p className="hero-subtitle">
-          {isNewUser 
+          {isNewUser
             ? 'Start your journey in dementia caregiving with evidence-based courses designed by healthcare professionals.'
             : 'Continue mastering dementia caregiving with evidence-based courses designed by healthcare professionals.'
           }
@@ -107,28 +189,28 @@ const RecommendedSection = ({ courses, onCourseSelect, user }) => {
   const getRecommendedCourse = () => {
     const basicCourse = courses.find(course => course.id === 1);
     const intermediateCourse = courses.find(course => course.id === 2);
-    
+
     // Case 1: User is currently on a course (progress > 0 and < 100)
     const currentCourse = courses.find(course => course.progress > 0 && course.progress < 100);
     if (currentCourse) {
       return [currentCourse];
     }
-    
+
     // Case 3: User completed basic course (progress >= 100), recommend intermediate
     if (basicCourse && basicCourse.progress >= 100) {
       return intermediateCourse ? [intermediateCourse] : [];
     }
-    
+
     // Case 2: User hasn't done any course, recommend basic
     return basicCourse ? [basicCourse] : [];
   };
-  
+
   const recommendedCourses = getRecommendedCourse();
-  
+
   if (recommendedCourses.length === 0) {
     return null;
   }
-  
+
   return (
     <section className="recommended-section">
       <div className="section-header">
@@ -165,7 +247,7 @@ const BrowseSection = ({ courses, categories, onCourseSelect }) => (
   </section>
 );
 
-const HomePage = ({ user, courses = [], categories = [], onCourseSelect }) => {
+const HomePage = ({ user, progressEntries = [], courses = [], categories = [], onCourseSelect }) => {
   const mockUser = {
     name: 'Alex Johnson',
     streak: 7,
@@ -173,59 +255,15 @@ const HomePage = ({ user, courses = [], categories = [], onCourseSelect }) => {
     points: 1250,
     ...user
   };
+  const mockCourses = (courses.length > 0 ? courses : COURSE_DEFINITIONS).map(course =>
+    buildCourseProgress(course, progressEntries)
+  );
 
-  // Determine user progress dynamically
-  const isNewUser = !user?.completedLessons || user.completedLessons === 0;
-  
-  const mockCourses = [
-    {
-      id: 1,
-      title: 'Basic Best Practices of Dementia Caregiving',
-      category: 'Basic Caregiving',
-      description: 'Master fundamental dementia care principles including communication, daily routines, and safety measures.',
-      icon: '🏥',
-      color: '#4285F4',
-      lessonCount: 11,
-      totalLessons: 11,
-      duration: '4-6 weeks',
-      estimatedTime: '8-12 weeks',
-      level: 'Beginner',
-      progress: isNewUser ? 0 : Math.min((user?.completedLessons || 0) * 6, 100), // Dynamic progress based on user
-      recommended: true
-    },
-    {
-      id: 2,
-      title: 'Intermediate Dementia Caregiving Knowledge',
-      category: 'Intermediate Care',
-      description: 'Advanced techniques for managing challenging behaviors, medication assistance, and specialized care approaches.',
-      icon: '🧠',
-      color: '#00AF54',
-      lessonCount: 13,
-      totalLessons: 13,
-      duration: '6-8 weeks',
-      estimatedTime: '10-14 weeks',
-      level: 'Intermediate',
-      progress: isNewUser ? 0 : Math.max(0, Math.min(((user?.completedLessons || 0) - 11) * 8, 100)), // Starts after basic course
-      recommended: true
-    },
-    {
-      id: 3,
-      title: 'Advanced Dementia Caregiving Research',
-      category: 'Advanced Research',
-      description: 'Explore implementation science, AI-supported learning, and ethnocultural personalization in dementia caregiver training.',
-      icon: '🔬',
-      color: '#7B61FF',
-      lessonCount: 7,
-      totalLessons: 7,
-      duration: '5-7 weeks',
-      estimatedTime: '7-10 weeks',
-      level: 'Advanced',
-      progress: 0,
-      recommended: false
-    }
-  ];
+  const mockCategories = categories.length > 0
+    ? categories
+    : ['Basic Caregiving', 'Intermediate Care', 'Advanced Research', 'Advanced Care', 'Safety & Environment'];
 
-  const mockCategories = ['Basic Caregiving', 'Intermediate Care', 'Advanced Research', 'Advanced Care', 'Safety & Environment'];
+  const isNewUser = (mockUser.completedLessons || 0) === 0;
 
   return (
     <div className="home-page">
