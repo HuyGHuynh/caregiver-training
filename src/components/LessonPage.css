@@ -1,7 +1,7 @@
 /* Lesson Page Styles */
 .lesson-page {
   width: 100%;
-  max-width: 760px;
+  max-width: min(760px, 100%);
   margin: 0 auto;
 }
 
@@ -856,6 +856,17 @@
     font-size: var(--font-size-2xl);
   }
 
+  .lesson-meta {
+    gap: var(--spacing-md);
+  }
+
+  .lesson-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    line-height: var(--line-height-relaxed);
+  }
+
   .content-section {
     padding: var(--spacing-lg);
   }
@@ -884,5 +895,46 @@
 
   .award-popup {
     padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .lesson-page {
+    padding: 0;
+  }
+
+  .lesson-header {
+    padding: var(--spacing-md) 0;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .lesson-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .lesson-meta {
+    gap: var(--spacing-xs);
+  }
+
+  .content-section,
+  .practice-section {
+    padding: var(--spacing-md);
+  }
+
+  .lesson-navigation .btn,
+  .award-actions .btn {
+    width: 100%;
+  }
+
+  .award-overlay {
+    padding: var(--spacing-sm);
+  }
+
+  .award-popup {
+    padding: var(--spacing-md);
+  }
+
+  .award-trophy {
+    font-size: 2.5rem;
   }
 }
