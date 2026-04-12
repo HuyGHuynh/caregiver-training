@@ -1,13 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { fetchQuestions } from '../services/api';
-import {
-  getCourseProgress,
-  getAvailableSubsections,
-  canAccessLesson,
-  extractSubsectionNumber
-} from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 import './CoursePage.css';
+
+const extractSubsectionNumber = (subsection) => {
+  if (!subsection) return '';
+
+  const subsectionText = String(subsection);
+  const match = subsectionText.match(/^(\d+\.\d+)/);
+  return match ? match[1] : subsectionText;
+};
+
+const COURSE_SUBSECTIONS = {
+  1: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3'],
+  2: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5'],
+  3: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']
+};
+
+const getUniqueCompletedEntries = (entries = [], subsections = []) => {
+  const uniqueEntries = new Map();
+
+  entries.forEach(entry => {
+    if (entry?.completed === false) return;
+
+    const subsection = extractSubsectionNumber(entry?.subsection);
+    if (subsections.length > 0 && !subsections.includes(subsection)) return;
+
+    const current = uniqueEntries.get(subsection);
+    const currentTime = current ? new Date(current.completedAt || current.createdAt || 0).getTime() : 0;
+    const nextTime = new Date(entry.completedAt || entry.createdAt || 0).getTime();
+
+    if (!current || nextTime >= currentTime) {
+      uniqueEntries.set(subsection, entry);
+    }
+  });
+
+  return Array.from(uniqueEntries.values());
+};
+
+const buildCourseProgress = (courseId, progressEntries = []) => {
+  const subsections = COURSE_SUBSECTIONS[courseId] || [];
+  const completedEntries = getUniqueCompletedEntries(progressEntries, subsections);
+  const completedSubsections = completedEntries.map(entry => extractSubsectionNumber(entry.subsection));
+  const completedCount = completedSubsections.length;
+  const totalLessons = subsections.length || 1;
+
+  return {
+    completedSubsections,
+    progress: Math.min(Math.round((completedCount / totalLessons) * 100), 100),
+    isStarted: completedCount > 0,
+    isCompleted: completedCount >= totalLessons,
+    pointsEarned: completedEntries.reduce((sum, entry) => sum + (entry.xpEarned || 0), 0),
+    currentSubsection: subsections.find(subsection => !completedSubsections.includes(subsection)) || subsections[subsections.length - 1] || '1.1'
+  };
+};
+
+const buildAvailableSubsections = (courseId, progressEntries = []) => {
+  const subsections = COURSE_SUBSECTIONS[courseId] || [];
+  const completed = new Set(getUniqueCompletedEntries(progressEntries, subsections).map(entry => extractSubsectionNumber(entry.subsection)));
+
+  return subsections.map((subsection, index) => ({
+    subsection,
+    isCompleted: completed.has(subsection),
+    isUnlocked: index === 0 || completed.has(subsections[index - 1])
+  }));
+};
 
 const LessonItem = ({ lesson, courseProgress, onStartLesson }) => {
   const isCompleted = lesson.completed;
@@ -125,71 +181,52 @@ const CourseNavigation = ({ modules, activeModule, onModuleChange }) => (
   </div>
 );
 
-const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTrigger = 0 }) => {
+const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries = [], refreshTrigger = 0 }) => {
   const [activeModule, setActiveModule] = useState(1);
   const [lesson11Questions, setLesson11Questions] = useState([]);
+  const [lesson12Questions, setLesson12Questions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState(null);
   const [availableSubsections, setAvailableSubsections] = useState([]);
   const [progressLoading, setProgressLoading] = useState(true);
 
-  const { currentUser, userProfile } = useAuth();
-
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
+  const isAdvancedResearchCourse = selectedCourse?.id === 3;
+  const totalLessonsCount = isAdvancedResearchCourse ? 7 : isIntermediateCourse ? 13 : 11;
 
   // Course category for API calls
   const courseCategory = selectedCourse?.category || 'Basic Best Practices of Dementia Caregiving';
 
-  // Fetch course progress and available subsections
-  const loadCourseData = async () => {
-    if (!currentUser) {
-      setProgressLoading(false);
-      return;
-    }
-
-    setProgressLoading(true);
-    try {
-      // Fetch course progress
-      const progress = await getCourseProgress(currentUser.uid, courseCategory);
-      setCourseProgress(progress);
-
-      // Fetch available subsections
-      const subsections = await getAvailableSubsections(currentUser.uid, courseCategory);
-      setAvailableSubsections(subsections.subsections || []);
-
-      console.log('📊 Course progress updated:', progress);
-      console.log('🔓 Available subsections:', subsections.subsections);
-    } catch (error) {
-      console.error('Error loading course data:', error);
-      // Use fallback data from userProfile if API fails
-      if (userProfile) {
-        setCourseProgress({
-          category: courseCategory,
-          completedSubsections: userProfile.progress?.completedSubsections || [],
-          progress: 0,
-          isStarted: userProfile.progress?.lessonsCompleted > 0
-        });
-      }
-    } finally {
-      setProgressLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadCourseData();
-  }, [currentUser, courseCategory, userProfile]);
+    const courseId = selectedCourse?.id || 1;
+    const progress = buildCourseProgress(courseId, progressEntries);
+    const subsections = buildAvailableSubsections(courseId, progressEntries);
 
-  // Fetch questions for lesson 1.1 on mount
+    setCourseProgress(progress);
+    setAvailableSubsections(subsections);
+    setProgressLoading(false);
+  }, [progressEntries, selectedCourse?.id]);
+
+  // Fetch real quiz questions for basic lessons on mount
   useEffect(() => {
     const loadQuestions = async () => {
       setLoading(true);
       try {
-        const questions = await fetchQuestions({ subsection: '1.1' });
-        // Limit to first 4 questions for now
-        const limitedQuestions = questions.slice(0, 4);
-        setLesson11Questions(limitedQuestions);
-        console.log(`Loaded ${limitedQuestions.length} questions (limited to first 4):`, limitedQuestions);
+        const loadQuizQuestions = async (subsection) => {
+          const questions = await fetchQuestions({ subsection });
+          const shuffledQuestions = questions.sort(() => 0.5 - Math.random());
+          return shuffledQuestions.slice(0, 5);
+        };
+
+        const [lesson11Quiz, lesson12Quiz] = await Promise.all([
+          loadQuizQuestions('1.1'),
+          loadQuizQuestions('1.2')
+        ]);
+
+        setLesson11Questions(lesson11Quiz);
+        setLesson12Questions(lesson12Quiz);
+        console.log(`Loaded ${lesson11Quiz.length} questions for 1.1 and ${lesson12Quiz.length} questions for 1.2`);
       } catch (error) {
         console.error('Error loading questions:', error);
       } finally {
@@ -197,33 +234,39 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       }
     };
 
-    if (!isIntermediateCourse) {
+    if (!isIntermediateCourse && !isAdvancedResearchCourse) {
       loadQuestions();
     }
-  }, [isIntermediateCourse]);
+  }, [isIntermediateCourse, isAdvancedResearchCourse]);
 
   // Mock data - replace with real data
   const mockCourse = {
     id: selectedCourse?.id || 1,
-    title: isIntermediateCourse ? 'Intermediate Dementia Caregiving Knowledge' : 'Basic Best Practices of Dementia Caregiving',
+    title: isAdvancedResearchCourse
+      ? 'Advanced Dementia Caregiving Research'
+      : isIntermediateCourse
+        ? 'Intermediate Dementia Caregiving Knowledge'
+        : 'Basic Best Practices of Dementia Caregiving',
     category: 'Healthcare & Caregiving',
-    description: isIntermediateCourse
-      ? 'Advanced dementia caregiving strategies focusing on behavioral management, complex coordination, and specialized interventions for challenging situations.'
-      : 'Comprehensive training in dementia caregiving from foundational knowledge through advanced care strategies and specialized interventions.',
-    icon: isIntermediateCourse ? '🧠' : '🏥',
-    color: isIntermediateCourse ? '#00AF54' : '#1181b2',
-    totalLessons: isIntermediateCourse ? 13 : 11,
-    estimatedTime: isIntermediateCourse ? '10-14 weeks' : '8-12 weeks',
-    level: 'All Levels',
+    description: isAdvancedResearchCourse
+      ? 'Research-oriented dementia caregiving education covering implementation science, AI-supported learning, ethics, and caregiver health literacy.'
+      : isIntermediateCourse
+        ? 'Advanced dementia caregiving strategies focusing on behavioral management, complex coordination, and specialized interventions for challenging situations.'
+        : 'Comprehensive training in dementia caregiving from foundational knowledge through advanced care strategies and specialized interventions.',
+    icon: isAdvancedResearchCourse ? '🔬' : isIntermediateCourse ? '🧠' : '🏥',
+    color: isAdvancedResearchCourse ? '#7B61FF' : isIntermediateCourse ? '#00AF54' : '#1181b2',
+    totalLessons: totalLessonsCount,
+    estimatedTime: isAdvancedResearchCourse ? '7-10 weeks' : isIntermediateCourse ? '10-14 weeks' : '8-12 weeks',
+    level: isAdvancedResearchCourse ? 'Advanced' : 'All Levels',
     ...selectedCourse
   };
 
   const mockProgress = {
     percentage: courseProgress ? courseProgress.progress : 0,
     completed: courseProgress ? courseProgress.completedSubsections?.length || 0 : 0,
-    remaining: isIntermediateCourse ? (13 - (courseProgress?.completedSubsections?.length || 0)) : (11 - (courseProgress?.completedSubsections?.length || 0)),
-    pointsEarned: userProfile ? userProfile.progress?.totalPoints || 0 : 0,
-    currentLesson: courseProgress ? Math.min((courseProgress.completedSubsections?.length || 0) + 1, isIntermediateCourse ? 13 : 11) : 1
+    remaining: totalLessonsCount - (courseProgress?.completedSubsections?.length || 0),
+    pointsEarned: courseProgress ? courseProgress.pointsEarned || 0 : 0,
+    currentLesson: courseProgress ? Math.min((courseProgress.completedSubsections?.length || 0) + 1, totalLessonsCount) : 1
   };
 
   // Calculate module completion based on user progress
@@ -256,6 +299,25 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       totalLessons: 5,
       completedLessons: calculateModuleCompletion(3, 5, ['3.1', '3.2', '3.3', '3.4', '3.5'])
     }
+  ] : isAdvancedResearchCourse ? [
+    {
+      id: 1,
+      title: 'Research Foundations',
+      totalLessons: 3,
+      completedLessons: calculateModuleCompletion(1, 3, ['1.1', '1.2', '1.3'])
+    },
+    {
+      id: 2,
+      title: 'Technology, Ethics, and Practice',
+      totalLessons: 2,
+      completedLessons: calculateModuleCompletion(2, 2, ['1.4', '1.5'])
+    },
+    {
+      id: 3,
+      title: 'Caregiver Systems & Simulation',
+      totalLessons: 2,
+      completedLessons: calculateModuleCompletion(3, 2, ['1.6', '1.7'])
+    }
   ] : [
     {
       id: 1,
@@ -286,16 +348,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
 
   // Helper function to determine if a lesson is available
   const isLessonAvailable = (lessonSubsection) => {
-    if (!currentUser) return lessonSubsection === '1.1'; // Only first lesson for guest users
-
-    if (userProfile && userProfile.progress) {
-      return canAccessLesson(lessonSubsection, userProfile.progress);
-    }
-
-    // Check from availableSubsections data
     const subsectionNum = extractSubsectionNumber(lessonSubsection);
     const subsectionData = availableSubsections.find(s => s.subsection === subsectionNum);
-    return subsectionData ? subsectionData.isUnlocked : lessonSubsection === '1.1';
+    if (subsectionData) {
+      return subsectionData.isUnlocked;
+    }
+
+    return lessonSubsection === '1.1';
   };
 
   const mockLessons = isIntermediateCourse ? [
@@ -489,6 +548,119 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       isAvailable: false,
       skills: ['Financial Protection', 'Fraud Prevention', 'Legal Safeguards']
     }
+  ] : isAdvancedResearchCourse ? [
+    {
+      id: 1,
+      number: 1,
+      moduleId: 1,
+      title: 'Neuro-Educational Frameworks for Informal Caregivers',
+      description: 'Study cognitive science-informed models for structuring caregiver education and retention.',
+      type: 'Research Seminar',
+      duration: 35,
+      points: 120,
+      completed: isLessonCompleted('1.1'),
+      isAvailable: isLessonAvailable('1.1'),
+      subsection: '1.1',
+      category: courseCategory,
+      section: 'Research Foundations',
+      skills: ['Learning Theory', 'Caregiver Education', 'Neuroscience Basics']
+    },
+    {
+      id: 2,
+      number: 2,
+      moduleId: 1,
+      title: 'Implementation Science in Comprehensive Dementia Care Models',
+      description: 'Apply implementation science principles to integrate caregiver interventions into real-world care systems.',
+      type: 'Applied Frameworks',
+      duration: 40,
+      points: 140,
+      completed: isLessonCompleted('1.2'),
+      isAvailable: isLessonAvailable('1.2'),
+      subsection: '1.2',
+      category: courseCategory,
+      section: 'Research Foundations',
+      skills: ['Implementation Science', 'Program Design', 'Care Model Integration']
+    },
+    {
+      id: 3,
+      number: 3,
+      moduleId: 1,
+      title: 'Ethnocultural Personalization of Caregiver Interventions',
+      description: 'Design culturally responsive caregiver strategies across diverse family and community settings.',
+      type: 'Case-Based Research',
+      duration: 35,
+      points: 125,
+      completed: isLessonCompleted('1.3'),
+      isAvailable: isLessonAvailable('1.3'),
+      subsection: '1.3',
+      category: courseCategory,
+      section: 'Research Foundations',
+      skills: ['Cultural Responsiveness', 'Intervention Design', 'Family-Centered Care']
+    },
+    {
+      id: 4,
+      number: 4,
+      moduleId: 2,
+      title: 'AI-Driven Adaptive Learning for Caregiver Training',
+      description: 'Examine adaptive learning systems and analytics for personalized caregiver training pathways.',
+      type: 'Technology Lab',
+      duration: 45,
+      points: 160,
+      completed: isLessonCompleted('1.4'),
+      isAvailable: isLessonAvailable('1.4'),
+      subsection: '1.4',
+      category: courseCategory,
+      section: 'Technology, Ethics, and Practice',
+      skills: ['AI in Education', 'Adaptive Learning', 'Data-Informed Personalization']
+    },
+    {
+      id: 5,
+      number: 5,
+      moduleId: 2,
+      title: 'Ethical Implications of Assistive "Robotherapy" Training',
+      description: 'Evaluate ethical risks and safeguards when deploying assistive robotics in caregiver learning contexts.',
+      type: 'Ethics Review',
+      duration: 40,
+      points: 145,
+      completed: isLessonCompleted('1.5'),
+      isAvailable: isLessonAvailable('1.5'),
+      subsection: '1.5',
+      category: courseCategory,
+      section: 'Technology, Ethics, and Practice',
+      skills: ['AI Ethics', 'Assistive Robotics', 'Risk-Benefit Analysis']
+    },
+    {
+      id: 6,
+      number: 6,
+      moduleId: 3,
+      title: 'Financial and Legal Health Literacy for Family Caregivers',
+      description: 'Build practical literacy in legal planning, healthcare finance, and caregiver rights navigation.',
+      type: 'Policy & Literacy',
+      duration: 35,
+      points: 130,
+      completed: isLessonCompleted('1.6'),
+      isAvailable: isLessonAvailable('1.6'),
+      subsection: '1.6',
+      category: courseCategory,
+      section: 'Caregiver Systems & Simulation',
+      skills: ['Health Literacy', 'Caregiver Rights', 'Financial Planning']
+    },
+    {
+      id: 7,
+      number: 7,
+      moduleId: 3,
+      title: 'Virtual Reality (VR) Simulation for Caregiver Scenario Training',
+      description: 'Use immersive simulation methods to strengthen decision-making and communication in high-stress care scenarios.',
+      type: 'Simulation Lab',
+      duration: 50,
+      points: 180,
+      completed: isLessonCompleted('1.7'),
+      isAvailable: isLessonAvailable('1.7'),
+      subsection: '1.7',
+      category: courseCategory,
+      section: 'Caregiver Systems & Simulation',
+      skills: ['VR Simulation', 'Decision-Making', 'Scenario-Based Training']
+    }
   ] : [
     // Module 1: Foundational Knowledge and Early-Stage Care (Basic)
     {
@@ -520,7 +692,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, user, refreshTr
       subsection: '1.2',
       category: courseCategory,
       section: 'Foundational Knowledge and Early-Stage Care (Basic)',
-      skills: ['Self-Care', 'Support Systems', 'Stress Management']
+      quiz: lesson12Questions
     },
     {
       id: 3,

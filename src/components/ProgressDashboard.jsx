@@ -1,6 +1,65 @@
 import React, { useState } from 'react';
 import './ProgressDashboard.css';
 
+const extractSubsectionNumber = (subsection) => {
+  if (!subsection) return '';
+
+  const subsectionText = String(subsection);
+  const match = subsectionText.match(/^(\d+\.\d+)/);
+  return match ? match[1] : subsectionText;
+};
+
+const getUniqueProgressEntries = (entries = []) => {
+  const uniqueEntries = new Map();
+
+  entries.forEach(entry => {
+    if (entry?.completed === false) return;
+
+    const subsection = extractSubsectionNumber(entry?.subsection);
+    if (!subsection) return;
+
+    const current = uniqueEntries.get(subsection);
+    const currentTime = current ? new Date(current.completedAt || current.createdAt || 0).getTime() : 0;
+    const nextTime = new Date(entry.completedAt || entry.createdAt || 0).getTime();
+
+    if (!current || nextTime >= currentTime) {
+      uniqueEntries.set(subsection, entry);
+    }
+  });
+
+  return Array.from(uniqueEntries.values());
+};
+
+const calculateStreak = (entries = []) => {
+  const dates = Array.from(
+    new Set(
+      entries
+        .filter(entry => entry?.completed !== false && entry?.completedAt)
+        .map(entry => new Date(entry.completedAt).toDateString())
+    )
+  )
+    .map(dateString => new Date(dateString))
+    .sort((left, right) => right.getTime() - left.getTime());
+
+  if (dates.length === 0) return 0;
+
+  let streak = 1;
+  for (let index = 1; index < dates.length; index += 1) {
+    const previous = dates[index - 1];
+    const current = dates[index];
+    const expected = new Date(previous);
+    expected.setDate(expected.getDate() - 1);
+
+    if (expected.toDateString() === current.toDateString()) {
+      streak += 1;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+};
+
 const StatsOverview = ({ stats }) => (
   <div className="stats-overview">
     <div className="stats-grid">
@@ -76,8 +135,8 @@ const CurrentCourse = ({ course, user }) => {
           <div className="course-category">{course.category}</div>
           <div className="progress-info">
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
+              <div
+                className="progress-fill"
                 style={{ width: `${course.progress}%` }}
               ></div>
             </div>
@@ -104,7 +163,7 @@ const CurrentCourse = ({ course, user }) => {
 
 const WeeklyActivity = ({ activityData }) => {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  
+
   return (
     <div className="weekly-activity">
       <h3 className="section-title">This Week's Activity</h3>
@@ -112,10 +171,10 @@ const WeeklyActivity = ({ activityData }) => {
         {days.map((day, index) => {
           const activity = activityData[index] || 0;
           const height = Math.max(4, (activity / Math.max(...activityData)) * 100);
-          
+
           return (
             <div key={day} className="activity-bar">
-              <div 
+              <div
                 className="bar-fill"
                 style={{ height: `${height}%` }}
                 title={`${day}: ${activity} minutes`}
@@ -157,7 +216,7 @@ const Badges = ({ achievements, user }) => {
             </p>
           </div>
         </div>
-        
+
         <div className="upcoming-badges">
           <h4>Badges to Earn</h4>
           <div className="upcoming-badges-list">
@@ -191,7 +250,7 @@ const Badges = ({ achievements, user }) => {
           </div>
         ))}
       </div>
-      
+
       {upcomingAchievements.length > 0 && (
         <div className="upcoming-badges">
           <h4>Next Badges to Earn</h4>
@@ -250,8 +309,8 @@ const SkillsProgress = ({ skills }) => (
           </div>
           <div className="skill-progress">
             <div className="skill-bar">
-              <div 
-                className="skill-fill" 
+              <div
+                className="skill-fill"
                 style={{ width: `${skill.progress}%` }}
               ></div>
             </div>
@@ -263,14 +322,17 @@ const SkillsProgress = ({ skills }) => (
   </div>
 );
 
-const ProgressDashboard = ({ user }) => {
+const ProgressDashboard = ({ user, progressEntries = [] }) => {
   const [timeRange, setTimeRange] = useState('thisWeek');
 
-  // Use actual user stats instead of mock data
+  const uniqueProgressEntries = getUniqueProgressEntries(progressEntries);
+  const lessonsCompleted = uniqueProgressEntries.length;
+  const totalPoints = uniqueProgressEntries.reduce((sum, p) => sum + (p.xpEarned || 0), 0);
+
   const userStats = {
-    streak: user?.streak || 0,
-    lessonsCompleted: user?.completedLessons || 0,
-    totalPoints: user?.points || 0
+    streak: calculateStreak(uniqueProgressEntries),
+    lessonsCompleted,
+    totalPoints
   };
 
   // Mock current course data - in a real app, this would come from user's enrolled courses
@@ -280,14 +342,14 @@ const ProgressDashboard = ({ user }) => {
     category: 'Basic Caregiving',
     icon: '🏥',
     color: '#4285F4',
-    progress: 65,
-    completedLessons: 7,
+    progress: lessonsCompleted > 0 ? Math.min(Math.round((lessonsCompleted / 11) * 100), 100) : 0,
+    completedLessons: lessonsCompleted,
     totalLessons: 11,
     estimatedTime: '4-6 weeks'
   };
 
   // Mock activity data - would be based on user's actual learning activity
-  const mockActivityData = user?.completedLessons > 0 ? [45, 60, 30, 75, 90, 25, 0] : [0, 0, 0, 0, 0, 0, 0];
+  const mockActivityData = lessonsCompleted > 0 ? [45, 60, 30, 75, 90, 25, 0] : [0, 0, 0, 0, 0, 0, 0];
 
   // Achievement badges - unlock based on actual user progress
   const mockAchievements = [
@@ -297,7 +359,7 @@ const ProgressDashboard = ({ user }) => {
       description: 'Complete your first dementia caregiving lesson',
       icon: '🌟',
       points: 50,
-      unlocked: (user?.completedLessons || 0) > 0,
+      unlocked: lessonsCompleted > 0,
       dateEarned: 'Jan 15, 2026'
     },
     {
@@ -306,7 +368,7 @@ const ProgressDashboard = ({ user }) => {
       description: 'Maintained 7-day learning streak',
       icon: '🔥',
       points: 100,
-      unlocked: (user?.streak || 0) >= 7,
+      unlocked: userStats.streak >= 7,
       dateEarned: 'Feb 8, 2026'
     },
     {
@@ -315,7 +377,7 @@ const ProgressDashboard = ({ user }) => {
       description: 'Complete 25 lessons',
       icon: '📚',
       points: 200,
-      unlocked: (user?.completedLessons || 0) >= 25
+      unlocked: lessonsCompleted >= 25
     },
     {
       id: 4,
@@ -328,7 +390,7 @@ const ProgressDashboard = ({ user }) => {
   ];
 
   // Recent lessons - empty for new users
-  const mockRecentLessons = user?.completedLessons > 0 ? [
+  const mockRecentLessons = lessonsCompleted > 0 ? [
     {
       id: 1,
       title: 'Communication Strategies',
@@ -349,17 +411,17 @@ const ProgressDashboard = ({ user }) => {
 
   // Skills - start at 0 for new users
   const mockSkills = [
-    { name: 'Communication', level: Math.min(Math.floor((user?.completedLessons || 0) / 10) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 5, 100) },
-    { name: 'Behavioral Management', level: Math.min(Math.floor((user?.completedLessons || 0) / 15) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 3, 100) },
-    { name: 'Person-Centered Care', level: Math.min(Math.floor((user?.completedLessons || 0) / 8) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 7, 100) },
-    { name: 'Safety Assessment', level: Math.min(Math.floor((user?.completedLessons || 0) / 20) + 1, 5), progress: Math.min((user?.completedLessons || 0) * 2, 100) }
+    { name: 'Communication', level: Math.min(Math.floor(lessonsCompleted / 10) + 1, 5), progress: Math.min(lessonsCompleted * 5, 100) },
+    { name: 'Behavioral Management', level: Math.min(Math.floor(lessonsCompleted / 15) + 1, 5), progress: Math.min(lessonsCompleted * 3, 100) },
+    { name: 'Person-Centered Care', level: Math.min(Math.floor(lessonsCompleted / 8) + 1, 5), progress: Math.min(lessonsCompleted * 7, 100) },
+    { name: 'Safety Assessment', level: Math.min(Math.floor(lessonsCompleted / 20) + 1, 5), progress: Math.min(lessonsCompleted * 2, 100) }
   ];
 
   return (
     <div className="progress-dashboard">
       <div className="dashboard-header">
         <h1 className="dashboard-title">Your Learning Progress</h1>
-        {(!user?.completedLessons || user.completedLessons === 0) && (
+        {lessonsCompleted === 0 && (
           <p className="dashboard-subtitle">Start your first course to begin tracking your progress!</p>
         )}
       </div>
@@ -370,7 +432,7 @@ const ProgressDashboard = ({ user }) => {
         <div className="dashboard-main">
           <CurrentCourse course={mockCurrentCourse} user={user} />
         </div>
-        
+
         <div className="dashboard-sidebar">
           <Badges achievements={mockAchievements} user={user} />
         </div>

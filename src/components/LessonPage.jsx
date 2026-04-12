@@ -4,16 +4,78 @@ import './LessonPage.css';
 import AIChatbot from './AIChatbot';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  completeSubsection,
-  checkSubsectionUnlock,
+  createProgress,
+  getLessonContent,
   extractSubsectionNumber,
-  canAccessLesson
 } from '../services/api';
 
-const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
+const canAccessLessonFromEntries = (lessonSubsection, progressEntries = []) => {
+  const subsectionNum = extractSubsectionNumber(lessonSubsection);
+  if (subsectionNum === '1.1') return true;
+
+  const completedSubsections = Array.from(new Set(
+    progressEntries
+      .filter(entry => entry?.completed !== false)
+      .map(entry => extractSubsectionNumber(entry?.subsection))
+      .filter(Boolean)
+  ));
+
+  const [section, sub] = subsectionNum.split('.').map(Number);
+
+  if (sub > 1) {
+    const previousSubsection = `${section}.${sub - 1}`;
+    return completedSubsections.includes(previousSubsection);
+  }
+
+  if (section > 1) {
+    const previousSection = `${section - 1}.`;
+    return completedSubsections.some(completed => completed.startsWith(previousSection));
+  }
+
+  return false;
+};
+
+const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset, showAIChatbot = true }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
+
+  const getCorrectOptionText = (currentQuestionData) => {
+    if (!currentQuestionData || !Array.isArray(currentQuestionData.options)) return null;
+
+    const options = currentQuestionData.options;
+    const answer = currentQuestionData.answer;
+
+    if (typeof answer === 'number') {
+      if (answer >= 0 && answer < options.length) return options[answer];
+      if (answer >= 1 && answer <= options.length) return options[answer - 1];
+      return null;
+    }
+
+    if (typeof answer !== 'string') return null;
+
+    const normalized = answer.trim();
+    if (!normalized) return null;
+
+    if (/^[A-Z]$/i.test(normalized)) {
+      const index = normalized.toUpperCase().charCodeAt(0) - 65;
+      return options[index] || null;
+    }
+
+    if (/^\d+$/.test(normalized)) {
+      const numericIndex = Number(normalized);
+      if (numericIndex >= 0 && numericIndex < options.length) return options[numericIndex];
+      if (numericIndex >= 1 && numericIndex <= options.length) return options[numericIndex - 1];
+    }
+
+    const directMatch = options.find(option => option === normalized);
+    if (directMatch) return directMatch;
+
+    const caseInsensitiveMatch = options.find(
+      option => option.toLowerCase() === normalized.toLowerCase()
+    );
+    return caseInsensitiveMatch || null;
+  };
 
   const question = questions[currentQuestion];
   const hasAnswered = userAnswers[question?.id || currentQuestion];
@@ -69,12 +131,13 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
             {question?.options?.map((option, index) => {
               const letter = String.fromCharCode(65 + index); // A, B, C, D
               const questionId = question.id || currentQuestion;
+              const correctOptionText = getCorrectOptionText(question);
               return (
                 <div key={index} className="choice-option-container">
                   <button
                     className={`choice-option ${hasAnswered?.answer === option ? 'selected' : ''
                       } ${hasAnswered?.isCorrect !== undefined
-                        ? letter === question.answer
+                        ? option === correctOptionText
                           ? 'correct'
                           : hasAnswered?.answer === option && !hasAnswered?.isCorrect
                             ? 'incorrect'
@@ -185,29 +248,95 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset }) => {
       {/* AI Chatbot - only visible during knowledge assessment */}
       <AIChatbot
         currentQuestion={question}
-        isVisible={true}
+        isVisible={showAIChatbot}
       />
     </div>
   );
 };
 
-const LessonContent = ({ lesson, onQuizAnswer, quizAnswers, onQuizReset }) => {
-  // Check if this is lesson 1.1 with quiz data
-  if (lesson?.id === 1 && lesson?.quiz) {
-    return (
-      <div className="lesson-content">
+const LessonContent = ({ lesson, lessonContent, contentLoading = false, onQuizAnswer, quizAnswers, onQuizReset, showAIChatbot = true }) => {
+  const contentSummary = lessonContent?.contentSummary || lesson?.contentSummary;
+
+  const renderSummary = () => {
+    if (contentLoading) {
+      return (
         <div className="content-section">
-          <h3>Understanding Dementia and Disease Progression</h3>
+          <h3>{lesson?.title || 'Lesson Overview'}</h3>
           <div className="content-text">
-            <p>{lesson.description}</p>
+            <p>Loading lesson summary...</p>
           </div>
         </div>
+      );
+    }
+
+    if (!contentSummary) {
+      return null;
+    }
+
+    return (
+      <div className="content-section">
+        <h3>{lesson?.title || 'Lesson Overview'}</h3>
+        <div className="content-text">
+          {contentSummary.overview && <p>{contentSummary.overview}</p>}
+
+          {Array.isArray(contentSummary.learningObjectives) && contentSummary.learningObjectives.length > 0 && (
+            <>
+              <h4>Learning Objectives</h4>
+              <ul className="summary-list summary-list-bullets">
+                {contentSummary.learningObjectives.map((objective, index) => (
+                  <li key={index}>{objective}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {Array.isArray(contentSummary.outcomes) && contentSummary.outcomes.length > 0 && (
+            <>
+              <h4>Outcomes</h4>
+              <ul className="summary-list summary-list-bullets">
+                {contentSummary.outcomes.map((outcome, index) => (
+                  <li key={index}>{outcome}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {Array.isArray(contentSummary.keyKnowledge) && contentSummary.keyKnowledge.length > 0 && (
+            <>
+              <h4>Key Knowledge</h4>
+              <div className="summary-key-knowledge">
+                {contentSummary.keyKnowledge.map((knowledge, index) => (
+                  <div key={index} className="summary-key-knowledge-item">
+                    <span className="step-number">{index + 1}.</span>
+                    <span className="step-text">{knowledge}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (lesson?.quiz) {
+    return (
+      <div className="lesson-content">
+        {renderSummary() || (
+          <div className="content-section">
+            <h3>{lesson.title || 'Lesson Overview'}</h3>
+            <div className="content-text">
+              <p>{lesson.description}</p>
+            </div>
+          </div>
+        )}
 
         <KnowledgeAssessment
           questions={lesson.quiz}
           onAnswer={onQuizAnswer}
           userAnswers={quizAnswers}
           onReset={onQuizReset}
+          showAIChatbot={showAIChatbot}
         />
       </div>
     );
@@ -309,14 +438,40 @@ const LessonNavigation = ({ lesson, onPrevious, onNext, onComplete, isCompleting
   </div>
 );
 
-const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }, onPrevious = () => { }, onBack = () => { } }) => {
+const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => { }, onNext = () => { }, onPrevious = () => { }, onBack = () => { } }) => {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [isCompleting, setIsCompleting] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(true);
   const [completionError, setCompletionError] = useState(null);
   const [completionSuccess, setCompletionSuccess] = useState(false);
+  const [showAwardPopup, setShowAwardPopup] = useState(false);
+  const [showSelfCareActivities, setShowSelfCareActivities] = useState(false);
+  const [completionResult, setCompletionResult] = useState(null);
+  const [lessonContent, setLessonContent] = useState(null);
+  const [contentLoading, setContentLoading] = useState(false);
 
   const { currentUser, userProfile, refreshProfile } = useAuth();
+
+  const selfCareActivities = [
+    'Take 10 deep breaths: inhale for 4 counts, hold for 4, exhale for 6.',
+    'Try a 5-minute body stretch focusing on shoulders, neck, and lower back.',
+    'Do a mindful tea or water break without screens for 3-5 minutes.',
+    'Write down 3 things you did well today as a caregiver.',
+    'Take a short walk and notice 5 things you can see and hear around you.'
+  ];
+
+  const resolveLessonSubsection = (lessonData) => {
+    if (lessonData?.subsection) {
+      return extractSubsectionNumber(lessonData.subsection);
+    }
+
+    const titleMatch = lessonData?.title?.match(/^(\d+\.\d+)/);
+    if (titleMatch) {
+      return titleMatch[1];
+    }
+
+    return null;
+  };
 
   // Mock data
   const mockLesson = {
@@ -335,31 +490,37 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
     ...lesson
   };
 
-  // Check if user can access this lesson on mount
+  const resolvedSubsection = resolveLessonSubsection(mockLesson);
   useEffect(() => {
-    const checkAccess = async () => {
-      if (!currentUser || !mockLesson.subsection) return;
-
+    const loadLessonContent = async () => {
+      setContentLoading(true);
       try {
-        const subsectionNum = extractSubsectionNumber(mockLesson.subsection);
-        const unlockStatus = await checkSubsectionUnlock(currentUser.uid, subsectionNum);
-        setIsUnlocked(unlockStatus.isUnlocked);
-
-        if (unlockStatus.isCompleted) {
-          mockLesson.isCompleted = true;
-        }
+        const content = await getLessonContent(resolvedSubsection);
+        setLessonContent(content);
       } catch (error) {
-        console.error('Error checking lesson access:', error);
-        // Default to checking with userProfile data
-        if (userProfile) {
-          const canAccess = canAccessLesson(mockLesson.subsection, userProfile.progress);
-          setIsUnlocked(canAccess);
-        }
+        console.error('Error loading lesson content:', error);
+        setLessonContent(null);
+      } finally {
+        setContentLoading(false);
       }
     };
 
+    if (resolvedSubsection) {
+      loadLessonContent();
+    }
+  }, [resolvedSubsection]);
+
+  // Check if user can access this lesson on mount
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!resolvedSubsection) return;
+
+      const canAccess = canAccessLessonFromEntries(resolvedSubsection, progressEntries);
+      setIsUnlocked(canAccess);
+    };
+
     checkAccess();
-  }, [currentUser, mockLesson.subsection, userProfile]);
+  }, [resolvedSubsection, progressEntries]);
 
   const handleQuizReset = () => {
     setQuizAnswers({});
@@ -370,7 +531,44 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
       mockLesson.quiz?.[questionId];
     if (!question) return;
 
-    const correctOption = question.options[question.answer.charCodeAt(0) - 65]; // Convert A/B/C/D to option text
+    const getCorrectOptionText = (questionData) => {
+      if (!questionData || !Array.isArray(questionData.options)) return null;
+
+      const options = questionData.options;
+      const rawAnswer = questionData.answer;
+
+      if (typeof rawAnswer === 'number') {
+        if (rawAnswer >= 0 && rawAnswer < options.length) return options[rawAnswer];
+        if (rawAnswer >= 1 && rawAnswer <= options.length) return options[rawAnswer - 1];
+        return null;
+      }
+
+      if (typeof rawAnswer !== 'string') return null;
+
+      const normalized = rawAnswer.trim();
+      if (!normalized) return null;
+
+      if (/^[A-Z]$/i.test(normalized)) {
+        const index = normalized.toUpperCase().charCodeAt(0) - 65;
+        return options[index] || null;
+      }
+
+      if (/^\d+$/.test(normalized)) {
+        const numericIndex = Number(normalized);
+        if (numericIndex >= 0 && numericIndex < options.length) return options[numericIndex];
+        if (numericIndex >= 1 && numericIndex <= options.length) return options[numericIndex - 1];
+      }
+
+      const directMatch = options.find(option => option === normalized);
+      if (directMatch) return directMatch;
+
+      const caseInsensitiveMatch = options.find(
+        option => option.toLowerCase() === normalized.toLowerCase()
+      );
+      return caseInsensitiveMatch || null;
+    };
+
+    const correctOption = getCorrectOptionText(question);
     const isCorrect = answer === correctOption;
 
     setQuizAnswers(prev => ({
@@ -394,51 +592,60 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
 
   // Handle lesson completion
   const handleLessonComplete = async () => {
-    if (!currentUser || !mockLesson.subsection) {
-      console.error('Cannot complete lesson: missing user or subsection data');
-      return;
-    }
-
-    if (!canCompleteLesson()) {
-      alert('Please complete the knowledge assessment correctly before finishing the lesson.');
+    if (!currentUser) {
+      console.error('Cannot complete lesson: missing user data');
+      setCompletionError('You must be logged in to complete a lesson.');
       return;
     }
 
     setIsCompleting(true);
     setCompletionError(null);
+    setCompletionSuccess(false);
 
     try {
-      const subsectionNum = extractSubsectionNumber(mockLesson.subsection);
+      const totalQuestions = mockLesson.quiz?.length || 0;
+      const correctAnswers = Object.values(quizAnswers).filter(a => a.isCorrect).length;
+      const scorePercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 100;
+      const xpEarned = 10 + (correctAnswers * 5); // 10 base XP + 5 for each correct answer
 
-      const completionData = {
-        subsection: subsectionNum,
-        category: mockLesson.category || course?.category || 'Basic Best Practices of Dementia Caregiving',
-        section: mockLesson.section || course?.section || 'Foundational Knowledge and Early-Stage Care (Basic)',
-        points: mockLesson.points || 10
+      const progressData = {
+        firebaseUid: currentUser.uid,
+        section: mockLesson.section,
+        subsection: resolvedSubsection,
+        level: course?.level || 'Basic',
+        totalQuestions,
+        correctAnswers,
+        scorePercentage,
+        completed: true,
+        xpEarned
       };
 
-      const result = await completeSubsection(currentUser.uid, completionData);
+      const result = await createProgress(progressData);
 
-      // Refresh user profile to get updated progress
+      setCompletionResult(result);
+      setCompletionSuccess(true);
+      setShowAwardPopup(true);
+
+      // Refresh user profile to get latest progress
       await refreshProfile();
 
-      setCompletionSuccess(true);
-      mockLesson.isCompleted = true;
-
-      // Show success message with next lesson info
-      const nextLessonInfo = result.nextSubsection ? `Next lesson: ${result.nextSubsection}` : 'Course completed!';
-      alert(`🎉 Lesson completed! You earned ${result.pointsEarned} points. ${nextLessonInfo}\n\nRedirecting back to course...`);
-
-      // Call the onComplete callback
-      onComplete(mockLesson, result);
+      // Trigger parent onComplete handler
+      onComplete(resolvedSubsection, {
+        points: result?.rewardEarned ?? 0,
+        nextSubsection: result.nextSubsection
+      });
 
     } catch (error) {
       console.error('Error completing lesson:', error);
-      setCompletionError(error.message);
-      alert('Error completing lesson. Please try again.');
+      setCompletionError(error.message || 'An unexpected error occurred.');
     } finally {
       setIsCompleting(false);
     }
+  };
+
+  const handleContinueAfterAward = () => {
+    setShowAwardPopup(false);
+    onBack();
   };
 
   // Show access denied if lesson is locked
@@ -481,8 +688,8 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
           <span className="lesson-status">
             {mockLesson.isCompleted ? '✅ Completed' : '📚 In Progress'}
           </span>
-          {mockLesson.subsection && (
-            <span className="lesson-subsection">Section: {mockLesson.subsection}</span>
+          {resolvedSubsection && (
+            <span className="lesson-subsection">Section: {resolvedSubsection}</span>
           )}
         </div>
       </div>
@@ -503,9 +710,12 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
         <div className="learn-content">
           <LessonContent
             lesson={mockLesson}
+            lessonContent={lessonContent}
+            contentLoading={contentLoading}
             onQuizAnswer={handleQuizAnswer}
             quizAnswers={quizAnswers}
             onQuizReset={handleQuizReset}
+            showAIChatbot={!showAwardPopup}
           />
         </div>
       </div>
@@ -518,6 +728,47 @@ const LessonPage = ({ lesson, course, onComplete = () => { }, onNext = () => { }
         isCompleting={isCompleting}
         canComplete={canCompleteLesson()}
       />
+
+      {showAwardPopup && (
+        <div className="award-overlay" role="dialog" aria-modal="true" aria-labelledby="award-title">
+          <div className="award-popup">
+            <div className="award-trophy">🏆</div>
+            <h2 id="award-title" className="award-title">Lesson Completed!</h2>
+            {((completionResult?.rewardEarned ?? 0) > 0) && (
+              <p className="award-points">
+                You earned <strong>{completionResult.rewardEarned} points</strong>.
+              </p>
+            )}
+            <p className="self-care-message">
+              Great work today. Caregiving is meaningful and demanding—please take a moment for your own self-care too. 💙
+            </p>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowSelfCareActivities(prev => !prev)}
+            >
+              {showSelfCareActivities ? 'Hide Self-Care Activities' : 'Show Self-Care Activities'}
+            </button>
+
+            {showSelfCareActivities && (
+              <div className="self-care-activities">
+                <h3>Try one now:</h3>
+                <ul>
+                  {selfCareActivities.map((activity, index) => (
+                    <li key={index}>{activity}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="award-actions">
+              <button className="btn btn-primary" onClick={handleContinueAfterAward}>
+                Continue to Course
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

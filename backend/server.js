@@ -6,6 +6,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const Question = require('./src/models/question.model');
 const User = require('./src/models/user.model');
+const apiRoutes = require('./src/routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,6 +46,9 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date()
   });
 });
+
+// Mount the modular API routes so /api/progress writes to the Progress collection
+app.use('/', apiRoutes);
 
 
 // Get questions with filters (subsection, category, level, section)

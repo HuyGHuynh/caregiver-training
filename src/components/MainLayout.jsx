@@ -1,69 +1,95 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import FontSizeDropdown from './FontSizeDropdown';
 import './MainLayout.css';
 
-const Header = ({ user, currentPage, onNavigate, onSignOut }) => (
-  <header className="main-header">
-    <div className="container">
-      <div className="header-content">
-        <div className="header-left">
-          <div className="logo">
-            <h1>EduPlatform</h1>
+const Header = ({ user, currentPage, onNavigate, onSignOut }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+
+  const handleNavigate = (page) => {
+    onNavigate(page);
+    setIsMenuOpen(false);
+  };
+
+  const navItems = [
+    { key: 'home', label: 'Home' },
+    { key: 'courses', label: 'Courses' },
+    { key: 'progress', label: 'My Progress' },
+    { key: 'course', label: 'Practice' }
+  ];
+
+  return (
+    <header className="main-header">
+      <div className="container">
+        <div className="header-content">
+          <div className="header-left">
+            <div className="logo">
+              <h1>EduPlatform</h1>
+            </div>
+
+            <button
+              type="button"
+              className="mobile-nav-toggle"
+              aria-label="Toggle navigation"
+              aria-expanded={isMenuOpen}
+              onClick={() => setIsMenuOpen(prev => !prev)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
+            <nav className={`main-nav ${isMenuOpen ? 'main-nav-open' : ''}`}>
+              {navItems.map(item => (
+                <button
+                  key={item.key}
+                  className={`nav-link ${currentPage === item.key ? 'active' : ''}`}
+                  onClick={() => handleNavigate(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
           </div>
-          <nav className="main-nav">
-            <button 
-              className={`nav-link ${currentPage === 'home' ? 'active' : ''}`}
-              onClick={() => onNavigate('home')}
-            >
-              Home
-            </button>
-            <button 
-              className={`nav-link ${currentPage === 'courses' ? 'active' : ''}`}
-              onClick={() => onNavigate('courses')}
-            >
-              Courses
-            </button>
-            <button 
-              className={`nav-link ${currentPage === 'progress' ? 'active' : ''}`}
-              onClick={() => onNavigate('progress')}
-            >
-              My Progress
-            </button>
-            <button 
-              className={`nav-link ${currentPage === 'course' ? 'active' : ''}`}
-              onClick={() => onNavigate('course')}
-            >
-              Practice
-            </button>
-          </nav>
-        </div>
-        <div className="header-right">
-          <div className="search-container">
-            <input type="search" placeholder="Search courses..." className="search-input" />
-            <button className="search-btn">🔍</button>
-          </div>
-          <FontSizeDropdown />
-          <div className="user-menu">
-            <button 
-              className="user-avatar-btn"
-              onClick={() => onNavigate('profile')}
-              title="View Profile"
-            >
-              <div className="user-avatar">{user?.name?.[0] || 'U'}</div>
-            </button>
-            <button 
-              className="sign-out-btn"
-              onClick={onSignOut}
-              title="Sign Out"
-            >
-              Sign Out
-            </button>
+
+          <div className="header-right">
+            <div className="search-container">
+              <input type="search" placeholder="Search courses..." className="search-input" />
+              <button className="search-btn">🔍</button>
+            </div>
+            <FontSizeDropdown />
+            <div className="user-menu">
+              <button
+                className="user-avatar-btn"
+                onClick={() => handleNavigate('profile')}
+                title="View Profile"
+              >
+                <div className="user-avatar">{user?.name?.[0] || 'U'}</div>
+              </button>
+              <button
+                className="sign-out-btn"
+                onClick={onSignOut}
+                title="Sign Out"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
 const Sidebar = ({ isOpen, onToggle }) => (
   <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -90,10 +116,10 @@ const Sidebar = ({ isOpen, onToggle }) => (
   </aside>
 );
 
-const MainLayout = ({ children, user, sidebarOpen = false, onSidebarToggle = () => {}, currentPage, onNavigate, onSignOut }) => {
+const MainLayout = ({ children, user, sidebarOpen = false, onSidebarToggle = () => { }, currentPage, onNavigate, onSignOut }) => {
   return (
     <div className="main-layout">
-      <Header user={user} currentPage={currentPage} onNavigate={onNavigate} onSignOut={onSignOut}/>
+      <Header user={user} currentPage={currentPage} onNavigate={onNavigate} onSignOut={onSignOut} />
       <div className="layout-body">
         <Sidebar isOpen={sidebarOpen} onToggle={onSidebarToggle} />
         <main className="main-content">
