@@ -1,7 +1,7 @@
 /* Lesson Page Styles */
 .lesson-page {
   width: 100%;
-  max-width: 760px;
+  max-width: min(760px, 100%);
   margin: 0 auto;
 }
 
@@ -235,9 +235,10 @@
   width: 100%;
 }
 
-padding: var(--spacing-xl) 0;
-border-bottom: 1px solid var(--border-light);
-margin-bottom: var(--spacing-xl);
+.lesson-header {
+  padding: var(--spacing-xl) 0;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--spacing-xl);
 }
 
 .lesson-breadcrumb {
@@ -342,6 +343,44 @@ margin-bottom: var(--spacing-xl);
 
 .content-text p:last-child {
   margin-bottom: 0;
+}
+
+.summary-list {
+  margin: var(--spacing-sm) 0 var(--spacing-md);
+  padding-left: var(--spacing-xl);
+  color: var(--text-primary);
+}
+
+.summary-list li {
+  margin-bottom: var(--spacing-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.summary-list-bullets {
+  list-style: disc;
+}
+
+.summary-key-knowledge {
+  margin-top: var(--spacing-sm);
+  padding-left: 0;
+  border-left: none;
+}
+
+.summary-key-knowledge-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  padding-left: 0;
+}
+
+.summary-key-knowledge-item .step-number {
+  min-width: 24px;
+  margin-top: 2px;
+}
+
+.summary-key-knowledge-item .step-text {
+  flex: 1;
 }
 
 /* Examples */
@@ -726,6 +765,83 @@ margin-bottom: var(--spacing-xl);
   color: var(--text-secondary);
 }
 
+/* Lesson Award Popup */
+.award-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  z-index: 3000;
+}
+
+.award-popup {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  padding: var(--spacing-2xl);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.award-trophy {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.award-title {
+  font-size: var(--font-size-2xl);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.award-points {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.self-care-message {
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-lg);
+}
+
+.self-care-activities {
+  text-align: left;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.self-care-activities h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+}
+
+.self-care-activities ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-primary);
+}
+
+.self-care-activities li {
+  margin-bottom: var(--spacing-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.award-actions {
+  margin-top: var(--spacing-xl);
+  display: flex;
+  justify-content: center;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .lesson-page {
@@ -738,6 +854,17 @@ margin-bottom: var(--spacing-xl);
 
   .lesson-title {
     font-size: var(--font-size-2xl);
+  }
+
+  .lesson-meta {
+    gap: var(--spacing-md);
+  }
+
+  .lesson-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    line-height: var(--line-height-relaxed);
   }
 
   .content-section {
@@ -764,5 +891,50 @@ margin-bottom: var(--spacing-xl);
 
   .question-actions {
     flex-direction: column;
+  }
+
+  .award-popup {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .lesson-page {
+    padding: 0;
+  }
+
+  .lesson-header {
+    padding: var(--spacing-md) 0;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .lesson-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .lesson-meta {
+    gap: var(--spacing-xs);
+  }
+
+  .content-section,
+  .practice-section {
+    padding: var(--spacing-md);
+  }
+
+  .lesson-navigation .btn,
+  .award-actions .btn {
+    width: 100%;
+  }
+
+  .award-overlay {
+    padding: var(--spacing-sm);
+  }
+
+  .award-popup {
+    padding: var(--spacing-md);
+  }
+
+  .award-trophy {
+    font-size: 2.5rem;
   }
 }

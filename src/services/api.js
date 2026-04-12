@@ -184,18 +184,15 @@ export const updateUserPreferences = async (firebaseUid, preferences) => {
 // PROGRESS TRACKING API FUNCTIONS
 // ==========================================
 
-// Complete a subsection
-export const completeSubsection = async (firebaseUid, subsectionData) => {
+// Create a new progress entry
+export const createProgress = async (progressData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/progress/complete-subsection`, {
+    const response = await fetch(`${API_BASE_URL}/api/progress`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        firebaseUid,
-        ...subsectionData
-      }),
+      body: JSON.stringify(progressData),
     });
 
     if (!response.ok) {
@@ -204,20 +201,20 @@ export const completeSubsection = async (firebaseUid, subsectionData) => {
 
     const result = await response.json();
     if (result.success) {
-      return result.data;
+      return result;
     } else {
-      throw new Error(result.error || 'Failed to complete subsection');
+      throw new Error(result.error || 'Failed to create progress entry');
     }
   } catch (error) {
-    console.error('Error completing subsection:', error);
+    console.error('Error creating progress entry:', error);
     throw error;
   }
 };
 
-// Get course progress
-export const getCourseProgress = async (firebaseUid, category) => {
+// Get all progress for a user
+export const getProgress = async (firebaseUid) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/progress/${firebaseUid}/course/${encodeURIComponent(category)}`);
+    const response = await fetch(`${API_BASE_URL}/api/progress/${firebaseUid}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -227,8 +224,112 @@ export const getCourseProgress = async (firebaseUid, category) => {
     if (result.success) {
       return result.data;
     } else {
-      throw new Error(result.error || 'Failed to fetch course progress');
+      throw new Error(result.error || 'Failed to fetch progress');
     }
+  } catch (error) {
+    console.error('Error fetching progress:', error);
+    throw error;
+  }
+};
+
+// Get lesson content by lesson key
+export const getLessonContent = async (lessonKey) => {
+  try {
+    const useSubsectionLookup = /^\d+\.\d+$/.test(String(lessonKey));
+    const url = useSubsectionLookup
+      ? `${API_BASE_URL}/api/lessons/by-subsection/${encodeURIComponent(lessonKey)}`
+      : `${API_BASE_URL}/api/lessons/${encodeURIComponent(lessonKey)}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      return result.data;
+    }
+
+    throw new Error(result.error || 'Failed to fetch lesson content');
+  } catch (error) {
+    console.error('Error fetching lesson content:', error);
+    throw error;
+  }
+};
+
+const COURSE_PROGRESS_MAP = {
+  1: {
+    title: 'Basic Best Practices of Dementia Caregiving',
+    subsections: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3']
+  },
+  2: {
+    title: 'Intermediate Dementia Caregiving Knowledge',
+    subsections: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5']
+  },
+  3: {
+    title: 'Advanced Dementia Caregiving Research',
+    subsections: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']
+  }
+};
+
+const resolveCourseConfig = (courseKey) => {
+  if (courseKey === undefined || courseKey === null) {
+    return COURSE_PROGRESS_MAP[1];
+  }
+
+  const numericKey = Number(courseKey);
+  if (!Number.isNaN(numericKey) && COURSE_PROGRESS_MAP[numericKey]) {
+    return COURSE_PROGRESS_MAP[numericKey];
+  }
+
+  const courseName = String(courseKey);
+  return Object.values(COURSE_PROGRESS_MAP).find(course => course.title === courseName) || COURSE_PROGRESS_MAP[1];
+};
+
+const getUniqueProgressEntries = (entries = [], subsections = []) => {
+  const uniqueEntries = new Map();
+
+  entries.forEach(entry => {
+    if (entry?.completed === false) return;
+
+    const subsection = extractSubsectionNumber(entry?.subsection);
+    if (subsections.length > 0 && !subsections.includes(subsection)) return;
+
+    const current = uniqueEntries.get(subsection);
+    const currentTime = current ? new Date(current.completedAt || current.createdAt || 0).getTime() : 0;
+    const nextTime = new Date(entry.completedAt || entry.createdAt || 0).getTime();
+
+    if (!current || nextTime >= currentTime) {
+      uniqueEntries.set(subsection, entry);
+    }
+  });
+
+  return Array.from(uniqueEntries.values());
+};
+
+export const getCourseProgress = async (firebaseUid, courseKey) => {
+  try {
+    const entries = await getProgress(firebaseUid);
+    const courseConfig = resolveCourseConfig(courseKey);
+    const courseEntries = getUniqueProgressEntries(entries, courseConfig.subsections);
+    const completedSubsections = courseEntries.map(entry => extractSubsectionNumber(entry.subsection));
+    const progress = courseConfig.subsections.length > 0
+      ? Math.min(Math.round((completedSubsections.length / courseConfig.subsections.length) * 100), 100)
+      : 0;
+
+    return {
+      category: courseConfig.title,
+      completedSubsections,
+      currentSubsection: courseConfig.subsections.find(subsection => !completedSubsections.includes(subsection)) || courseConfig.subsections[0] || '1.1',
+      progress,
+      isStarted: completedSubsections.length > 0,
+      isCompleted: completedSubsections.length >= courseConfig.subsections.length,
+      pointsEarned: courseEntries.reduce((sum, entry) => sum + (entry.xpEarned || 0), 0)
+    };
   } catch (error) {
     console.error('Error fetching course progress:', error);
     throw error;
@@ -238,18 +339,20 @@ export const getCourseProgress = async (firebaseUid, category) => {
 // Get dashboard data
 export const getDashboardData = async (firebaseUid) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/progress/${firebaseUid}/dashboard`);
+    const entries = await getProgress(firebaseUid);
+    const uniqueEntries = getUniqueProgressEntries(entries);
+    const totalPoints = uniqueEntries.reduce((sum, entry) => sum + (entry.xpEarned || 0), 0);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.success) {
-      return result.data;
-    } else {
-      throw new Error(result.error || 'Failed to fetch dashboard data');
-    }
+    return {
+      stats: {
+        streak: 0,
+        lessonsCompleted: uniqueEntries.length,
+        totalPoints,
+        completedSubsections: uniqueEntries.length,
+        currentSubsection: uniqueEntries.length > 0 ? extractSubsectionNumber(uniqueEntries[uniqueEntries.length - 1].subsection) : '1.1'
+      },
+      progress: uniqueEntries
+    };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
     throw error;
@@ -259,18 +362,14 @@ export const getDashboardData = async (firebaseUid) => {
 // Check if subsection is unlocked
 export const checkSubsectionUnlock = async (firebaseUid, subsection) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/progress/${firebaseUid}/unlock/${subsection}`);
+    const entries = await getProgress(firebaseUid);
+    const isUnlocked = canAccessLesson(subsection, entries);
+    const isCompleted = getUniqueProgressEntries(entries).some(entry => extractSubsectionNumber(entry.subsection) === extractSubsectionNumber(subsection));
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.success) {
-      return result.data;
-    } else {
-      throw new Error(result.error || 'Failed to check subsection unlock status');
-    }
+    return {
+      isUnlocked,
+      isCompleted
+    };
   } catch (error) {
     console.error('Error checking subsection unlock:', error);
     throw error;
@@ -278,20 +377,19 @@ export const checkSubsectionUnlock = async (firebaseUid, subsection) => {
 };
 
 // Get available subsections for course
-export const getAvailableSubsections = async (firebaseUid, category) => {
+export const getAvailableSubsections = async (firebaseUid, courseKey) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/progress/${firebaseUid}/available/${encodeURIComponent(category)}`);
+    const entries = await getProgress(firebaseUid);
+    const courseConfig = resolveCourseConfig(courseKey);
+    const completed = new Set(getUniqueProgressEntries(entries, courseConfig.subsections).map(entry => extractSubsectionNumber(entry.subsection)));
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.success) {
-      return result.data;
-    } else {
-      throw new Error(result.error || 'Failed to fetch available subsections');
-    }
+    return {
+      subsections: courseConfig.subsections.map((subsection, index) => ({
+        subsection,
+        isUnlocked: index === 0 || completed.has(courseConfig.subsections[index - 1]),
+        isCompleted: completed.has(subsection)
+      }))
+    };
   } catch (error) {
     console.error('Error fetching available subsections:', error);
     throw error;
@@ -322,31 +420,34 @@ export const extractSubsectionNumber = (subsection) => {
 
 // Check if user can access a lesson based on progress
 export const canAccessLesson = (lessonSubsection, userProgress) => {
-  if (!userProgress || !userProgress.completedSubsections) {
-    return lessonSubsection === '1.1'; // Only first lesson accessible for new users
+  if (!userProgress) {
+    return lessonSubsection === '1.1';
+  }
+
+  const completedSubsections = Array.isArray(userProgress)
+    ? getUniqueProgressEntries(userProgress).map(entry => extractSubsectionNumber(entry.subsection))
+    : Array.isArray(userProgress.completedSubsections)
+      ? userProgress.completedSubsections.map(subsection => extractSubsectionNumber(subsection))
+      : [];
+
+  if (completedSubsections.length === 0) {
+    return lessonSubsection === '1.1';
   }
 
   const subsectionNum = extractSubsectionNumber(lessonSubsection);
-
-  // First lesson is always accessible
   if (subsectionNum === '1.1') {
     return true;
   }
 
-  // Check if previous lesson is completed
   const [section, sub] = subsectionNum.split('.').map(Number);
   if (sub > 1) {
     const previousSubsection = `${section}.${sub - 1}`;
-    return userProgress.completedSubsections.includes(previousSubsection);
+    return completedSubsections.includes(previousSubsection);
   }
 
-  // For new sections, check if previous section is completed
   if (section > 1) {
-    // Simple check: look for any completed lesson in previous section
     const previousSectionPattern = `${section - 1}.`;
-    return userProgress.completedSubsections.some(completed =>
-      completed.startsWith(previousSectionPattern)
-    );
+    return completedSubsections.some(completed => completed.startsWith(previousSectionPattern));
   }
 
   return false;
