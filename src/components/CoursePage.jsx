@@ -12,7 +12,7 @@ const extractSubsectionNumber = (subsection) => {
 
 const COURSE_SUBSECTIONS = {
   1: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3'],
-  2: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5'],
+  2: ['4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5'],
   3: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']
 };
 
@@ -193,7 +193,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
   const isAdvancedResearchCourse = selectedCourse?.id === 3;
-  const totalLessonsCount = isAdvancedResearchCourse ? 7 : isIntermediateCourse ? 13 : 11;
+  const totalLessonsCount = isAdvancedResearchCourse ? 7 : isIntermediateCourse ? 14 : 11;
 
   // Course category for API calls
   const courseCategory = selectedCourse?.category || 'Basic Best Practices of Dementia Caregiving';
@@ -283,19 +283,19 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   const mockModules = isIntermediateCourse ? [
     {
       id: 1,
-      title: 'Foundational Adjustments (Easy)',
+      title: 'Foundational Adjustments',
       totalLessons: 3,
       completedLessons: calculateModuleCompletion(1, 3, ['1.1', '1.2', '1.3'])
     },
     {
       id: 2,
-      title: 'Active Behavioral Management (Intermediate)',
+      title: 'Active Behavioral Management',
       totalLessons: 5,
       completedLessons: calculateModuleCompletion(2, 5, ['2.1', '2.2', '2.3', '2.4', '2.5'])
     },
     {
       id: 3,
-      title: 'Complex Coordination & Risk (Advanced)',
+      title: 'Complex Coordination & Risk',
       totalLessons: 5,
       completedLessons: calculateModuleCompletion(3, 5, ['3.1', '3.2', '3.3', '3.4', '3.5'])
     }
@@ -321,19 +321,19 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   ] : [
     {
       id: 1,
-      title: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      title: 'Foundational Knowledge and Early-Stage Care',
       totalLessons: 4,
       completedLessons: calculateModuleCompletion(1, 4, ['1.1', '1.2', '1.3', '1.4'])
     },
     {
       id: 2,
-      title: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
+      title: 'Daily Routines and Safety',
       totalLessons: 4,
       completedLessons: calculateModuleCompletion(2, 4, ['2.1', '2.2', '2.3', '2.4'])
     },
     {
       id: 3,
-      title: 'Advanced Care and Specialized Interventions (Advanced)',
+      title: 'Specialized Care and Intervention',
       totalLessons: 3,
       completedLessons: calculateModuleCompletion(3, 3, ['3.1', '3.2', '3.3'])
     }
@@ -407,10 +407,26 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       section: 'Foundational Adjustments (Easy)',
       skills: ['Sundowning Management', 'Behavioral Patterns', 'Environmental Modifications']
     },
-    // Module 2: Active Behavioral Management (Intermediate)
     {
       id: 4,
       number: 4,
+      moduleId: 1,
+      title: '4.4. Creating a Supportive Environment to Reduce Confusion and Stress',
+      description: 'Designing calm, predictable spaces that lower confusion, reduce stress, and support orientation throughout the day.',
+      type: 'Environmental Design',
+      duration: 30,
+      points: 100,
+      completed: isLessonCompleted('4.4'),
+      isAvailable: isLessonAvailable('4.4'),
+      subsection: '4.4',
+      category: courseCategory,
+      section: 'Foundational Adjustments (Easy)',
+      skills: ['Environment Design', 'Stress Reduction', 'Orientation Support']
+    },
+    // Module 2: Active Behavioral Management
+    {
+      id: 5,
+      number: 5,
       moduleId: 2,
       title: '5.1. BPSD "Trigger → Behavior → Response" Framework',
       description: 'Understanding behavioral triggers and implementing appropriate response strategies.',
@@ -421,12 +437,12 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('5.1'),
       subsection: '5.1',
       category: courseCategory,
-      section: 'Active Behavioral Management (Intermediate)',
+      section: 'Active Behavioral Management',
       skills: ['BPSD Framework', 'Trigger Identification', 'Response Planning']
     },
     {
-      id: 5,
-      number: 5,
+      id: 6,
+      number: 6,
       moduleId: 2,
       title: '5.2. Resistance to Care (Bathing, Dressing, Hygiene)',
       description: 'Strategies for managing resistance to personal care activities.',
@@ -437,12 +453,12 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('5.2'),
       subsection: '5.2',
       category: courseCategory,
-      section: 'Active Behavioral Management (Intermediate)',
+      section: 'Active Behavioral Management',
       skills: ['Care Resistance', 'Personal Care', 'Dignity Preservation']
     },
     {
-      id: 6,
-      number: 6,
+      id: 7,
+      number: 7,
       moduleId: 2,
       title: '5.3. Wandering, Elopement Risk, and "Safe Freedom"',
       description: 'Managing wandering behaviors while maintaining autonomy and safety.',
@@ -453,12 +469,12 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('5.3'),
       subsection: '5.3',
       category: courseCategory,
-      section: 'Active Behavioral Management (Intermediate)',
+      section: 'Active Behavioral Management',
       skills: ['Wandering Management', 'Safety Planning', 'Environmental Safety']
     },
     {
-      id: 7,
-      number: 7,
+      id: 8,
+      number: 8,
       moduleId: 2,
       title: '5.4. Sleep Disruption and Day–Night Reversal',
       description: 'Addressing sleep issues and circadian rhythm disruptions in dementia.',
@@ -470,8 +486,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       skills: ['Sleep Management', 'Circadian Rhythms', 'Behavioral Interventions']
     },
     {
-      id: 8,
-      number: 8,
+      id: 9,
+      number: 9,
       moduleId: 2,
       title: '5.5. Toileting, Incontinence, and Dignity-Preserving Routines',
       description: 'Managing incontinence while preserving dignity and independence.',
@@ -482,10 +498,10 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: false,
       skills: ['Incontinence Care', 'Dignity Preservation', 'Routine Management']
     },
-    // Module 3: Complex Coordination & Risk (Advanced)
+    // Module 3: Complex Coordination & Risk
     {
-      id: 9,
-      number: 9,
+      id: 10,
+      number: 10,
       moduleId: 3,
       title: '6.1. Hallucinations, Delusions, and Misidentification (Validate + Redirect)',
       description: 'Managing psychotic symptoms using validation and redirection techniques.',
@@ -497,8 +513,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       skills: ['Psychotic Symptoms', 'Validation Therapy', 'Redirection Techniques']
     },
     {
-      id: 10,
-      number: 10,
+      id: 11,
+      number: 11,
       moduleId: 3,
       title: '6.2. Nutrition, Swallowing Risk, and Hydration',
       description: 'Managing nutritional needs and swallowing difficulties in advanced dementia.',
@@ -510,8 +526,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       skills: ['Nutrition Management', 'Swallowing Safety', 'Hydration Monitoring']
     },
     {
-      id: 11,
-      number: 11,
+      id: 12,
+      number: 12,
       moduleId: 3,
       title: '6.3. Caregiver Contingency Planning ("What if I get sick?")',
       description: 'Creating backup care plans and emergency caregiver arrangements.',
@@ -523,8 +539,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       skills: ['Contingency Planning', 'Emergency Preparedness', 'Care Coordination']
     },
     {
-      id: 12,
-      number: 12,
+      id: 13,
+      number: 13,
       moduleId: 3,
       title: '6.4. Care Transitions and Higher Levels of Care',
       description: 'Planning and managing transitions to higher levels of care.',
@@ -536,8 +552,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       skills: ['Care Transitions', 'Level of Care Assessment', 'Transition Planning']
     },
     {
-      id: 13,
-      number: 13,
+      id: 14,
+      number: 14,
       moduleId: 3,
       title: '6.5. Money Management and Fraud Risk',
       description: 'Protecting against financial exploitation and managing financial affairs.',
@@ -662,7 +678,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       skills: ['VR Simulation', 'Decision-Making', 'Scenario-Based Training']
     }
   ] : [
-    // Module 1: Foundational Knowledge and Early-Stage Care (Basic)
+    // Module 1: Foundational Knowledge and Early-Stage Care
     {
       id: 1,
       number: 1,
@@ -675,7 +691,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.1'),
       subsection: '1.1',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      section: 'Foundational Knowledge and Early-Stage Care',
       quiz: lesson11Questions
     },
     {
@@ -691,7 +707,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.2'),
       subsection: '1.2',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      section: 'Foundational Knowledge and Early-Stage Care',
       quiz: lesson12Questions
     },
     {
@@ -707,7 +723,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.3'),
       subsection: '1.3',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      section: 'Foundational Knowledge and Early-Stage Care',
       skills: ['Communication', 'Verbal Techniques', 'Non-verbal Cues']
     },
     {
@@ -723,10 +739,10 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.4'),
       subsection: '1.4',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      section: 'Foundational Knowledge and Early-Stage Care',
       skills: ['Early Planning', 'Independence', 'Future Care Planning']
     },
-    // Module 2: Intermediate Care Strategies: Daily Routines and Safety (Intermediate)
+    // Module 2: Daily Routines and Safety
     {
       id: 5,
       number: 5,
@@ -740,7 +756,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.1'),
       subsection: '2.1',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
+      section: 'Daily Routines and Safety',
       skills: ['Daily Routines', 'Structure', 'Consistency']
     },
     {
@@ -756,7 +772,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.2'),
       subsection: '2.2',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
+      section: 'Daily Routines and Safety',
       skills: ['ADLs', 'Task Simplification', 'Assistance Techniques']
     },
     {
@@ -772,7 +788,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.3'),
       subsection: '2.3',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
+      section: 'Daily Routines and Safety',
       skills: ['Home Safety', 'Environmental Design', 'Risk Assessment']
     },
     {
@@ -788,10 +804,10 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.4'),
       subsection: '2.4',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
+      section: 'Daily Routines and Safety',
       skills: ['BPSD', 'Behavioral Management', 'Intervention Strategies']
     },
-    // Module 3: Advanced Care and Specialized Interventions (Advanced)
+    // Module 3: Specialized Care and Intervention
     {
       id: 9,
       number: 9,
@@ -805,7 +821,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('3.1'),
       subsection: '3.1',
       category: courseCategory,
-      section: 'Advanced Care and Specialized Interventions (Advanced)',
+      section: 'Specialized Care and Intervention',
       skills: ['Physical Care', 'Medical Management', 'Complex Needs']
     },
     {

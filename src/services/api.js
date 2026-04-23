@@ -268,7 +268,7 @@ const COURSE_PROGRESS_MAP = {
   },
   2: {
     title: 'Intermediate Dementia Caregiving Knowledge',
-    subsections: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5']
+    subsections: ['4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5']
   },
   3: {
     title: 'Advanced Dementia Caregiving Research',

@@ -32,12 +32,12 @@ const COURSE_DEFINITIONS = [
     description: 'Advanced techniques for managing challenging behaviors, medication assistance, and specialized care approaches.',
     icon: '🧠',
     color: '#00AF54',
-    lessonCount: 13,
+    lessonCount: 14,
     duration: '6-8 weeks',
     estimatedTime: '10-14 weeks',
     level: 'Intermediate',
     recommended: true,
-    subsections: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5']
+    subsections: ['4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5']
   },
   {
     id: 3,
