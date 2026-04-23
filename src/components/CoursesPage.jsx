@@ -93,7 +93,7 @@ const CourseCard = ({ course, onCourseSelect }) => (
         {course.icon}
       </div>
     </div>
-    <div className="course-content">
+    <div className="course-card-content">
       <div className="course-category">{course.category}</div>
       <h3 className="course-title">{course.title}</h3>
       <p className="course-description">{course.description}</p>

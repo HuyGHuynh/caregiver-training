@@ -866,52 +866,56 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
         </div>
       )}
 
-      <CourseHeader
-        course={mockCourse}
-        progress={courseProgress ? {
-          ...mockProgress,
-          completedLessons: courseProgress.completedSubsections?.length || 0,
-          progressPercentage: courseProgress.progress || 0
-        } : mockProgress}
-      />
+      <section className="course-page-overview-container">
+        <CourseHeader
+          course={mockCourse}
+          progress={courseProgress ? {
+            ...mockProgress,
+            completedLessons: courseProgress.completedSubsections?.length || 0,
+            progressPercentage: courseProgress.progress || 0
+          } : mockProgress}
+        />
+      </section>
 
-      <div className="course-content">
-        <div className="course-sidebar">
+      <div className="course-page-content">
+        <aside className="course-page-modules-container">
           <CourseNavigation
             modules={mockModules}
             activeModule={activeModule}
             onModuleChange={setActiveModule}
           />
-        </div>
+        </aside>
 
-        <div className="course-lessons">
-          <div className="lessons-header">
-            <h2>
-              {mockModules.find(m => m.id === activeModule)?.title || 'Lessons'}
-            </h2>
-            <div className="lessons-actions">
-              <button className="btn btn-secondary btn-small">
-                Download Materials
-              </button>
-              {courseProgress && (
-                <span className="progress-text">
-                  {courseProgress.completedSubsections?.length || 0} lessons completed
-                </span>
-              )}
+        <section className="course-page-lesson-container">
+          <div className="course-lessons">
+            <div className="lessons-header">
+              <h2>
+                {mockModules.find(m => m.id === activeModule)?.title || 'Lessons'}
+              </h2>
+              <div className="lessons-actions">
+                <button className="btn btn-secondary btn-small">
+                  Download Materials
+                </button>
+                {courseProgress && (
+                  <span className="progress-text">
+                    {courseProgress.completedSubsections?.length || 0} lessons completed
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="lessons-list">
+              {currentModuleLessons.map(lesson => (
+                <LessonItem
+                  key={lesson.id}
+                  lesson={lesson}
+                  courseProgress={mockProgress}
+                  onStartLesson={onStartLesson}
+                />
+              ))}
             </div>
           </div>
-
-          <div className="lessons-list">
-            {currentModuleLessons.map(lesson => (
-              <LessonItem
-                key={lesson.id}
-                lesson={lesson}
-                courseProgress={mockProgress}
-                onStartLesson={onStartLesson}
-              />
-            ))}
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
