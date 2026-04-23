@@ -40,6 +40,11 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset, showAI
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
 
+  useEffect(() => {
+    setShowHint(false);
+    setShowSolution(false);
+  }, [currentQuestion]);
+
   const getCorrectOptionText = (currentQuestionData) => {
     if (!currentQuestionData || !Array.isArray(currentQuestionData.options)) return null;
 
