@@ -185,6 +185,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   const [activeModule, setActiveModule] = useState(1);
   const [lesson11Questions, setLesson11Questions] = useState([]);
   const [lesson12Questions, setLesson12Questions] = useState([]);
+  const [lesson13Questions, setLesson13Questions] = useState([]);
+  const [lessonQuizQuestions, setLessonQuizQuestions] = useState({});
   const [loading, setLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState(null);
   const [availableSubsections, setAvailableSubsections] = useState([]);
@@ -219,14 +221,21 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
           return shuffledQuestions.slice(0, 5);
         };
 
-        const [lesson11Quiz, lesson12Quiz] = await Promise.all([
-          loadQuizQuestions('1.1'),
-          loadQuizQuestions('1.2')
-        ]);
+        const quizSubsections = ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3'];
+        const quizEntries = await Promise.all(
+          quizSubsections.map(async (subsection) => [subsection, await loadQuizQuestions(subsection)])
+        );
+
+        const quizMap = Object.fromEntries(quizEntries);
+        const lesson11Quiz = quizMap['1.1'] || [];
+        const lesson12Quiz = quizMap['1.2'] || [];
+        const lesson13Quiz = quizMap['1.3'] || [];
 
         setLesson11Questions(lesson11Quiz);
         setLesson12Questions(lesson12Quiz);
-        console.log(`Loaded ${lesson11Quiz.length} questions for 1.1 and ${lesson12Quiz.length} questions for 1.2`);
+        setLesson13Questions(lesson13Quiz);
+        setLessonQuizQuestions(quizMap);
+        console.log(`Loaded quiz questions for ${quizSubsections.join(', ')}`);
       } catch (error) {
         console.error('Error loading questions:', error);
       } finally {
@@ -724,7 +733,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '1.3',
       category: courseCategory,
       section: 'Foundational Knowledge and Early-Stage Care',
-      skills: ['Communication', 'Verbal Techniques', 'Non-verbal Cues']
+      skills: ['Communication', 'Verbal Techniques', 'Non-verbal Cues'],
+      keyObjectives: [
+        'Identify communication barriers that increase confusion or frustration.',
+        'Use simple, calm, person-centered communication techniques.',
+        'Apply respectful verbal and non-verbal cues to support understanding.'
+      ],
+      quiz: lesson13Questions
     },
     {
       id: 4,
@@ -740,7 +755,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '1.4',
       category: courseCategory,
       section: 'Foundational Knowledge and Early-Stage Care',
-      skills: ['Early Planning', 'Independence', 'Future Care Planning']
+      skills: ['Early Planning', 'Independence', 'Future Care Planning'],
+      keyObjectives: [
+        'Identify practical steps for supporting independence at an early stage.',
+        'Plan ahead for future care needs while the person can still participate in decisions.',
+        'Use small supports that preserve confidence, routine, and dignity.'
+      ],
+      quiz: lessonQuizQuestions['1.4'] || []
     },
     // Module 2: Daily Routines and Safety
     {
@@ -757,7 +778,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '2.1',
       category: courseCategory,
       section: 'Daily Routines and Safety',
-      skills: ['Daily Routines', 'Structure', 'Consistency']
+      skills: ['Daily Routines', 'Structure', 'Consistency'],
+      keyObjectives: [
+        'Build a predictable daily structure that reduces confusion.',
+        'Keep routines simple, repeatable, and easy to follow.',
+        'Use consistency to support calm and better functioning.'
+      ],
+      quiz: lessonQuizQuestions['2.1'] || []
     },
     {
       id: 6,
@@ -773,7 +800,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '2.2',
       category: courseCategory,
       section: 'Daily Routines and Safety',
-      skills: ['ADLs', 'Task Simplification', 'Assistance Techniques']
+      skills: ['ADLs', 'Task Simplification', 'Assistance Techniques'],
+      keyObjectives: [
+        'Break daily living tasks into smaller, manageable steps.',
+        'Support independence while still providing needed assistance.',
+        'Reduce frustration by simplifying instructions and setup.'
+      ],
+      quiz: lessonQuizQuestions['2.2'] || []
     },
     {
       id: 7,
@@ -789,7 +822,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '2.3',
       category: courseCategory,
       section: 'Daily Routines and Safety',
-      skills: ['Home Safety', 'Environmental Design', 'Risk Assessment']
+      skills: ['Home Safety', 'Environmental Design', 'Risk Assessment'],
+      keyObjectives: [
+        'Spot common home hazards that increase falls or confusion.',
+        'Make practical environmental changes to improve safety.',
+        'Use the home setting to support orientation and reduce risk.'
+      ],
+      quiz: lessonQuizQuestions['2.3'] || []
     },
     {
       id: 8,
@@ -805,7 +844,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '2.4',
       category: courseCategory,
       section: 'Daily Routines and Safety',
-      skills: ['BPSD', 'Behavioral Management', 'Intervention Strategies']
+      skills: ['BPSD', 'Behavioral Management', 'Intervention Strategies'],
+      keyObjectives: [
+        'Recognize common behavioral and psychological symptoms of dementia.',
+        'Identify likely triggers behind behavioral changes.',
+        'Choose calm, structured responses that reduce escalation.'
+      ],
+      quiz: lessonQuizQuestions['2.4'] || []
     },
     // Module 3: Specialized Care and Intervention
     {
@@ -822,7 +867,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '3.1',
       category: courseCategory,
       section: 'Specialized Care and Intervention',
-      skills: ['Physical Care', 'Medical Management', 'Complex Needs']
+      skills: ['Physical Care', 'Medical Management', 'Complex Needs'],
+      keyObjectives: [
+        'Assess advanced physical care needs and common complications.',
+        'Support safe mobility, transfers, and medical routines.',
+        'Coordinate care with the broader clinical team when needed.'
+      ],
+      quiz: lessonQuizQuestions['3.1'] || []
     },
     {
       id: 10,
@@ -835,7 +886,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 175,
       completed: false,
       isAvailable: false,
-      skills: ['Medical Ethics', 'Decision Making', 'Legal Considerations']
+      skills: ['Medical Ethics', 'Decision Making', 'Legal Considerations'],
+      keyObjectives: [
+        'Balance autonomy, safety, and family responsibilities in difficult decisions.',
+        'Understand how advance directives guide care choices.',
+        'Apply ethical reasoning to care decisions in advanced dementia.'
+      ],
+      quiz: lessonQuizQuestions['3.2'] || []
     },
     {
       id: 11,
@@ -848,7 +905,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 225,
       completed: false,
       isAvailable: false,
-      skills: ['End-of-Life Care', 'Family Support', 'Palliative Care']
+      skills: ['End-of-Life Care', 'Family Support', 'Palliative Care'],
+      keyObjectives: [
+        'Provide compassionate support during end-of-life transitions.',
+        'Recognize common emotional and practical caregiving needs at the end of life.',
+        'Prepare families for planning, communication, and comfort-focused care.'
+      ],
+      quiz: lessonQuizQuestions['3.3'] || []
     }
   ];
 

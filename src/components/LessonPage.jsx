@@ -262,6 +262,11 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset, showAI
 
 const LessonContent = ({ lesson, lessonContent, contentLoading = false, onQuizAnswer, quizAnswers, onQuizReset, showAIChatbot = true }) => {
   const contentSummary = lessonContent?.contentSummary || lesson?.contentSummary;
+  const keyObjectives = Array.isArray(contentSummary?.keyObjectives)
+    ? contentSummary.keyObjectives
+    : Array.isArray(lesson?.keyObjectives)
+      ? lesson.keyObjectives
+      : [];
 
   const renderSummary = () => {
     if (contentLoading) {
@@ -290,6 +295,17 @@ const LessonContent = ({ lesson, lessonContent, contentLoading = false, onQuizAn
               <h4>Learning Objectives</h4>
               <ul className="summary-list summary-list-bullets">
                 {contentSummary.learningObjectives.map((objective, index) => (
+                  <li key={index}>{objective}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {keyObjectives.length > 0 && (
+            <>
+              <h4>Key Objectives</h4>
+              <ul className="summary-list summary-list-bullets">
+                {keyObjectives.map((objective, index) => (
                   <li key={index}>{objective}</li>
                 ))}
               </ul>
