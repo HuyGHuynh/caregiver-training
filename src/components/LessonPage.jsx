@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SpeakerButton from './SpeakerButton';
 import './LessonPage.css';
 import AIChatbot from './AIChatbot';
@@ -8,6 +8,7 @@ import {
   getLessonContent,
   extractSubsectionNumber,
 } from '../services/api';
+import { generateMindfulnessActivity } from '../services/gemini';
 
 const canAccessLessonFromEntries = (lessonSubsection, progressEntries = []) => {
   const subsectionNum = extractSubsectionNumber(lessonSubsection);
@@ -39,6 +40,11 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset, showAI
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
+
+  useEffect(() => {
+    setShowHint(false);
+    setShowSolution(false);
+  }, [currentQuestion]);
 
   const getCorrectOptionText = (currentQuestionData) => {
     if (!currentQuestionData || !Array.isArray(currentQuestionData.options)) return null;
@@ -256,6 +262,11 @@ const KnowledgeAssessment = ({ questions, onAnswer, userAnswers, onReset, showAI
 
 const LessonContent = ({ lesson, lessonContent, contentLoading = false, onQuizAnswer, quizAnswers, onQuizReset, showAIChatbot = true }) => {
   const contentSummary = lessonContent?.contentSummary || lesson?.contentSummary;
+  const keyObjectives = Array.isArray(contentSummary?.keyObjectives)
+    ? contentSummary.keyObjectives
+    : Array.isArray(lesson?.keyObjectives)
+      ? lesson.keyObjectives
+      : [];
 
   const renderSummary = () => {
     if (contentLoading) {
@@ -284,6 +295,17 @@ const LessonContent = ({ lesson, lessonContent, contentLoading = false, onQuizAn
               <h4>Learning Objectives</h4>
               <ul className="summary-list summary-list-bullets">
                 {contentSummary.learningObjectives.map((objective, index) => (
+                  <li key={index}>{objective}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {keyObjectives.length > 0 && (
+            <>
+              <h4>Key Objectives</h4>
+              <ul className="summary-list summary-list-bullets">
+                {keyObjectives.map((objective, index) => (
                   <li key={index}>{objective}</li>
                 ))}
               </ul>
@@ -446,19 +468,14 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
   const [completionSuccess, setCompletionSuccess] = useState(false);
   const [showAwardPopup, setShowAwardPopup] = useState(false);
   const [showSelfCareActivities, setShowSelfCareActivities] = useState(false);
+  const [mindfulnessActivity, setMindfulnessActivity] = useState('');
+  const [mindfulnessLoading, setMindfulnessLoading] = useState(false);
   const [completionResult, setCompletionResult] = useState(null);
   const [lessonContent, setLessonContent] = useState(null);
   const [contentLoading, setContentLoading] = useState(false);
+  const mindfulnessRequestStartedRef = useRef(false);
 
   const { currentUser, userProfile, refreshProfile } = useAuth();
-
-  const selfCareActivities = [
-    'Take 10 deep breaths: inhale for 4 counts, hold for 4, exhale for 6.',
-    'Try a 5-minute body stretch focusing on shoulders, neck, and lower back.',
-    'Do a mindful tea or water break without screens for 3-5 minutes.',
-    'Write down 3 things you did well today as a caregiver.',
-    'Take a short walk and notice 5 things you can see and hear around you.'
-  ];
 
   const resolveLessonSubsection = (lessonData) => {
     if (lessonData?.subsection) {
@@ -522,8 +539,73 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
     checkAccess();
   }, [resolvedSubsection, progressEntries]);
 
+  useEffect(() => {
+    mindfulnessRequestStartedRef.current = false;
+    setMindfulnessActivity('');
+    setMindfulnessLoading(false);
+    setShowSelfCareActivities(false);
+  }, [resolvedSubsection]);
+
+  const startMindfulnessActivity = async () => {
+    if (mindfulnessRequestStartedRef.current) {
+      return;
+    }
+
+    mindfulnessRequestStartedRef.current = true;
+    setMindfulnessLoading(true);
+
+    try {
+      const activity = await generateMindfulnessActivity({
+        courseTitle: course?.title || 'Dementia caregiving training',
+        lessonTitle: mockLesson.title,
+        lessonFocus: mockLesson.description || 'caregiver recovery, calm, and emotional reset'
+      });
+
+      console.log('Mindfulness AI result:', activity);
+      setMindfulnessActivity(activity);
+    } catch (error) {
+      console.error('Falling back to a local mindfulness activity:', error);
+      setMindfulnessActivity('Take three slow breaths, then notice two calm sights and one supportive sound around you.');
+    } finally {
+      setMindfulnessLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!resolvedSubsection || !isUnlocked) {
+      return;
+    }
+
+    if (mindfulnessRequestStartedRef.current || mindfulnessActivity || mindfulnessLoading) {
+      return;
+    }
+
+    startMindfulnessActivity();
+  }, [resolvedSubsection, isUnlocked, mindfulnessActivity, mindfulnessLoading]);
+
+  useEffect(() => {
+    if (!mockLesson.quiz || mockLesson.quiz.length === 0) {
+      return;
+    }
+
+    const isReadyForCompletion = mockLesson.quiz.every((question, index) => {
+      const questionId = question.id || index;
+      const userAnswer = quizAnswers[questionId];
+      return userAnswer && userAnswer.isCorrect;
+    });
+
+    if (!isReadyForCompletion || mindfulnessRequestStartedRef.current || mindfulnessActivity || mindfulnessLoading) {
+      return;
+    }
+
+    startMindfulnessActivity();
+  }, [quizAnswers, mindfulnessActivity, mindfulnessLoading, mockLesson.quiz]);
+
   const handleQuizReset = () => {
     setQuizAnswers({});
+    mindfulnessRequestStartedRef.current = false;
+    setMindfulnessActivity('');
+    setMindfulnessLoading(false);
   };
 
   const handleQuizAnswer = (questionId, answer) => {
@@ -601,8 +683,13 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
     setIsCompleting(true);
     setCompletionError(null);
     setCompletionSuccess(false);
+    setShowSelfCareActivities(false);
 
     try {
+      if (!mindfulnessRequestStartedRef.current) {
+        startMindfulnessActivity();
+      }
+
       const totalQuestions = mockLesson.quiz?.length || 0;
       const correctAnswers = Object.values(quizAnswers).filter(a => a.isCorrect).length;
       const scorePercentage = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 100;
@@ -645,6 +732,7 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
 
   const handleContinueAfterAward = () => {
     setShowAwardPopup(false);
+    setShowSelfCareActivities(false);
     onBack();
   };
 
@@ -752,12 +840,14 @@ const LessonPage = ({ lesson, course, progressEntries = [], onComplete = () => {
 
             {showSelfCareActivities && (
               <div className="self-care-activities">
-                <h3>Try one now:</h3>
-                <ul>
-                  {selfCareActivities.map((activity, index) => (
-                    <li key={index}>{activity}</li>
-                  ))}
-                </ul>
+                <h3>Try this now:</h3>
+                {mindfulnessLoading ? (
+                  <p>Generating a mindfulness activity...</p>
+                ) : (
+                  <ul>
+                    <li>{mindfulnessActivity}</li>
+                  </ul>
+                )}
               </div>
             )}
 

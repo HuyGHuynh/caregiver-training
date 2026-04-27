@@ -12,7 +12,7 @@ const extractSubsectionNumber = (subsection) => {
 
 const COURSE_SUBSECTIONS = {
   1: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3'],
-  2: ['4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5'],
+  2: ['4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4', '5.5', '6.1', '6.2', '6.3', '6.4', '6.5'],
   3: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']
 };
 
@@ -185,6 +185,8 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   const [activeModule, setActiveModule] = useState(1);
   const [lesson11Questions, setLesson11Questions] = useState([]);
   const [lesson12Questions, setLesson12Questions] = useState([]);
+  const [lesson13Questions, setLesson13Questions] = useState([]);
+  const [lessonQuizQuestions, setLessonQuizQuestions] = useState({});
   const [loading, setLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState(null);
   const [availableSubsections, setAvailableSubsections] = useState([]);
@@ -193,7 +195,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   // Determine course content based on selected course
   const isIntermediateCourse = selectedCourse?.id === 2;
   const isAdvancedResearchCourse = selectedCourse?.id === 3;
-  const totalLessonsCount = isAdvancedResearchCourse ? 7 : isIntermediateCourse ? 13 : 11;
+  const totalLessonsCount = isAdvancedResearchCourse ? 7 : isIntermediateCourse ? 14 : 11;
 
   // Course category for API calls
   const courseCategory = selectedCourse?.category || 'Basic Best Practices of Dementia Caregiving';
@@ -219,14 +221,21 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
           return shuffledQuestions.slice(0, 5);
         };
 
-        const [lesson11Quiz, lesson12Quiz] = await Promise.all([
-          loadQuizQuestions('1.1'),
-          loadQuizQuestions('1.2')
-        ]);
+        const quizSubsections = ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3'];
+        const quizEntries = await Promise.all(
+          quizSubsections.map(async (subsection) => [subsection, await loadQuizQuestions(subsection)])
+        );
+
+        const quizMap = Object.fromEntries(quizEntries);
+        const lesson11Quiz = quizMap['1.1'] || [];
+        const lesson12Quiz = quizMap['1.2'] || [];
+        const lesson13Quiz = quizMap['1.3'] || [];
 
         setLesson11Questions(lesson11Quiz);
         setLesson12Questions(lesson12Quiz);
-        console.log(`Loaded ${lesson11Quiz.length} questions for 1.1 and ${lesson12Quiz.length} questions for 1.2`);
+        setLesson13Questions(lesson13Quiz);
+        setLessonQuizQuestions(quizMap);
+        console.log(`Loaded quiz questions for ${quizSubsections.join(', ')}`);
       } catch (error) {
         console.error('Error loading questions:', error);
       } finally {
@@ -283,19 +292,19 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   const mockModules = isIntermediateCourse ? [
     {
       id: 1,
-      title: 'Foundational Adjustments (Easy)',
+      title: 'Foundational Adjustments',
       totalLessons: 3,
       completedLessons: calculateModuleCompletion(1, 3, ['1.1', '1.2', '1.3'])
     },
     {
       id: 2,
-      title: 'Active Behavioral Management (Intermediate)',
+      title: 'Active Behavioral Management',
       totalLessons: 5,
       completedLessons: calculateModuleCompletion(2, 5, ['2.1', '2.2', '2.3', '2.4', '2.5'])
     },
     {
       id: 3,
-      title: 'Complex Coordination & Risk (Advanced)',
+      title: 'Complex Coordination & Risk',
       totalLessons: 5,
       completedLessons: calculateModuleCompletion(3, 5, ['3.1', '3.2', '3.3', '3.4', '3.5'])
     }
@@ -321,19 +330,19 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
   ] : [
     {
       id: 1,
-      title: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      title: 'Foundational Knowledge and Early-Stage Care',
       totalLessons: 4,
       completedLessons: calculateModuleCompletion(1, 4, ['1.1', '1.2', '1.3', '1.4'])
     },
     {
       id: 2,
-      title: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
+      title: 'Daily Routines and Safety',
       totalLessons: 4,
       completedLessons: calculateModuleCompletion(2, 4, ['2.1', '2.2', '2.3', '2.4'])
     },
     {
       id: 3,
-      title: 'Advanced Care and Specialized Interventions (Advanced)',
+      title: 'Specialized Care and Intervention',
       totalLessons: 3,
       completedLessons: calculateModuleCompletion(3, 3, ['3.1', '3.2', '3.3'])
     }
@@ -373,7 +382,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '4.1',
       category: courseCategory,
       section: 'Foundational Adjustments (Easy)',
-      skills: ['Activity Planning', 'Cognitive Assessment', 'Engagement Strategies']
+      skills: ['Activity Planning', 'Cognitive Assessment', 'Engagement Strategies'],
+      keyObjectives: [
+        'Match the amount of activity support to the person’s current abilities.',
+        'Recognize when an activity is too easy, too difficult, or just right.',
+        'Use meaningful engagement to reduce boredom and stress.'
+      ],
+      quiz: lessonQuizQuestions['4.1'] || []
     },
     {
       id: 2,
@@ -389,7 +404,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '4.2',
       category: courseCategory,
       section: 'Foundational Adjustments (Easy)',
-      skills: ['Advanced Communication', 'Middle-Stage Care', 'Verbal Techniques']
+      skills: ['Advanced Communication', 'Middle-Stage Care', 'Verbal Techniques'],
+      keyObjectives: [
+        'Use communication techniques that fit middle-stage dementia needs.',
+        'Keep instructions simple, concrete, and supportive.',
+        'Reduce confusion by matching tone, pace, and wording to the person.'
+      ],
+      quiz: lessonQuizQuestions['4.2'] || []
     },
     {
       id: 3,
@@ -405,12 +426,40 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '4.3',
       category: courseCategory,
       section: 'Foundational Adjustments (Easy)',
-      skills: ['Sundowning Management', 'Behavioral Patterns', 'Environmental Modifications']
+      skills: ['Sundowning Management', 'Behavioral Patterns', 'Environmental Modifications'],
+      keyObjectives: [
+        'Recognize patterns that contribute to sundowning.',
+        'Use routine and environment changes to reduce late-day distress.',
+        'Respond calmly when confusion or agitation increases later in the day.'
+      ],
+      quiz: lessonQuizQuestions['4.3'] || []
     },
-    // Module 2: Active Behavioral Management (Intermediate)
     {
       id: 4,
       number: 4,
+      moduleId: 1,
+      title: '4.4. Creating a Supportive Environment to Reduce Confusion and Stress',
+      description: 'Designing calm, predictable spaces that lower confusion, reduce stress, and support orientation throughout the day.',
+      type: 'Environmental Design',
+      duration: 30,
+      points: 100,
+      completed: isLessonCompleted('4.4'),
+      isAvailable: isLessonAvailable('4.4'),
+      subsection: '4.4',
+      category: courseCategory,
+      section: 'Foundational Adjustments (Easy)',
+      skills: ['Environment Design', 'Stress Reduction', 'Orientation Support'],
+      keyObjectives: [
+        'Create predictable spaces that lower confusion and stress.',
+        'Use visual and environmental cues to support orientation.',
+        'Make small layout changes that improve safety and comfort.'
+      ],
+      quiz: lessonQuizQuestions['4.4'] || []
+    },
+    // Module 2: Active Behavioral Management
+    {
+      id: 5,
+      number: 5,
       moduleId: 2,
       title: '5.1. BPSD "Trigger → Behavior → Response" Framework',
       description: 'Understanding behavioral triggers and implementing appropriate response strategies.',
@@ -421,12 +470,18 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('5.1'),
       subsection: '5.1',
       category: courseCategory,
-      section: 'Active Behavioral Management (Intermediate)',
-      skills: ['BPSD Framework', 'Trigger Identification', 'Response Planning']
+      section: 'Active Behavioral Management',
+      skills: ['BPSD Framework', 'Trigger Identification', 'Response Planning'],
+      keyObjectives: [
+        'Use the trigger-behavior-response model to understand behavior.',
+        'Identify common triggers that precede distress or resistance.',
+        'Choose responses that reduce escalation and support safety.'
+      ],
+      quiz: lessonQuizQuestions['5.1'] || []
     },
     {
-      id: 5,
-      number: 5,
+      id: 6,
+      number: 6,
       moduleId: 2,
       title: '5.2. Resistance to Care (Bathing, Dressing, Hygiene)',
       description: 'Strategies for managing resistance to personal care activities.',
@@ -437,12 +492,18 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('5.2'),
       subsection: '5.2',
       category: courseCategory,
-      section: 'Active Behavioral Management (Intermediate)',
-      skills: ['Care Resistance', 'Personal Care', 'Dignity Preservation']
+      section: 'Active Behavioral Management',
+      skills: ['Care Resistance', 'Personal Care', 'Dignity Preservation'],
+      keyObjectives: [
+        'Understand why a person may resist bathing, dressing, or hygiene care.',
+        'Use respectful strategies to lower resistance during personal care.',
+        'Preserve dignity while completing necessary care tasks.'
+      ],
+      quiz: lessonQuizQuestions['5.2'] || []
     },
     {
-      id: 6,
-      number: 6,
+      id: 7,
+      number: 7,
       moduleId: 2,
       title: '5.3. Wandering, Elopement Risk, and "Safe Freedom"',
       description: 'Managing wandering behaviors while maintaining autonomy and safety.',
@@ -453,12 +514,18 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('5.3'),
       subsection: '5.3',
       category: courseCategory,
-      section: 'Active Behavioral Management (Intermediate)',
-      skills: ['Wandering Management', 'Safety Planning', 'Environmental Safety']
+      section: 'Active Behavioral Management',
+      skills: ['Wandering Management', 'Safety Planning', 'Environmental Safety'],
+      keyObjectives: [
+        'Identify wandering and elopement risks before they become emergencies.',
+        'Balance safety with the person’s need for movement and freedom.',
+        'Use practical safety planning to reduce risk while supporting autonomy.'
+      ],
+      quiz: lessonQuizQuestions['5.3'] || []
     },
     {
-      id: 7,
-      number: 7,
+      id: 8,
+      number: 8,
       moduleId: 2,
       title: '5.4. Sleep Disruption and Day–Night Reversal',
       description: 'Addressing sleep issues and circadian rhythm disruptions in dementia.',
@@ -467,11 +534,17 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 100,
       completed: false,
       isAvailable: false,
-      skills: ['Sleep Management', 'Circadian Rhythms', 'Behavioral Interventions']
+      skills: ['Sleep Management', 'Circadian Rhythms', 'Behavioral Interventions'],
+      keyObjectives: [
+        'Recognize how sleep disruption affects caregiving and behavior.',
+        'Use routines and environmental supports to improve sleep patterns.',
+        'Respond to day-night reversal with practical, low-stress interventions.'
+      ],
+      quiz: lessonQuizQuestions['5.4'] || []
     },
     {
-      id: 8,
-      number: 8,
+      id: 9,
+      number: 9,
       moduleId: 2,
       title: '5.5. Toileting, Incontinence, and Dignity-Preserving Routines',
       description: 'Managing incontinence while preserving dignity and independence.',
@@ -480,12 +553,18 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 150,
       completed: false,
       isAvailable: false,
-      skills: ['Incontinence Care', 'Dignity Preservation', 'Routine Management']
+      skills: ['Incontinence Care', 'Dignity Preservation', 'Routine Management'],
+      keyObjectives: [
+        'Manage toileting and incontinence needs with dignity and consistency.',
+        'Build routines that reduce accidents and stress.',
+        'Use practical supports to protect comfort, cleanliness, and respect.'
+      ],
+      quiz: lessonQuizQuestions['5.5'] || []
     },
-    // Module 3: Complex Coordination & Risk (Advanced)
+    // Module 3: Complex Coordination & Risk
     {
-      id: 9,
-      number: 9,
+      id: 10,
+      number: 10,
       moduleId: 3,
       title: '6.1. Hallucinations, Delusions, and Misidentification (Validate + Redirect)',
       description: 'Managing psychotic symptoms using validation and redirection techniques.',
@@ -494,11 +573,17 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 200,
       completed: false,
       isAvailable: false,
-      skills: ['Psychotic Symptoms', 'Validation Therapy', 'Redirection Techniques']
+      skills: ['Psychotic Symptoms', 'Validation Therapy', 'Redirection Techniques'],
+      keyObjectives: [
+        'Recognize hallucinations, delusions, and misidentification symptoms.',
+        'Use validation and redirection instead of confrontation.',
+        'Respond in a way that lowers fear and preserves trust.'
+      ],
+      quiz: lessonQuizQuestions['6.1'] || []
     },
     {
-      id: 10,
-      number: 10,
+      id: 11,
+      number: 11,
       moduleId: 3,
       title: '6.2. Nutrition, Swallowing Risk, and Hydration',
       description: 'Managing nutritional needs and swallowing difficulties in advanced dementia.',
@@ -507,11 +592,17 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 175,
       completed: false,
       isAvailable: false,
-      skills: ['Nutrition Management', 'Swallowing Safety', 'Hydration Monitoring']
+      skills: ['Nutrition Management', 'Swallowing Safety', 'Hydration Monitoring'],
+      keyObjectives: [
+        'Identify nutrition, hydration, and swallowing concerns in advanced care.',
+        'Support safer eating and drinking routines.',
+        'Know when to escalate swallowing or hydration issues for clinical support.'
+      ],
+      quiz: lessonQuizQuestions['6.2'] || []
     },
     {
-      id: 11,
-      number: 11,
+      id: 12,
+      number: 12,
       moduleId: 3,
       title: '6.3. Caregiver Contingency Planning ("What if I get sick?")',
       description: 'Creating backup care plans and emergency caregiver arrangements.',
@@ -520,11 +611,17 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 150,
       completed: false,
       isAvailable: false,
-      skills: ['Contingency Planning', 'Emergency Preparedness', 'Care Coordination']
+      skills: ['Contingency Planning', 'Emergency Preparedness', 'Care Coordination'],
+      keyObjectives: [
+        'Create backup plans for times when the main caregiver is unavailable.',
+        'Prepare practical emergency arrangements before a crisis happens.',
+        'Coordinate caregiving responsibilities so support remains continuous.'
+      ],
+      quiz: lessonQuizQuestions['6.3'] || []
     },
     {
-      id: 12,
-      number: 12,
+      id: 13,
+      number: 13,
       moduleId: 3,
       title: '6.4. Care Transitions and Higher Levels of Care',
       description: 'Planning and managing transitions to higher levels of care.',
@@ -533,11 +630,17 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 175,
       completed: false,
       isAvailable: false,
-      skills: ['Care Transitions', 'Level of Care Assessment', 'Transition Planning']
+      skills: ['Care Transitions', 'Level of Care Assessment', 'Transition Planning'],
+      keyObjectives: [
+        'Understand when a transition to a higher level of care may be needed.',
+        'Plan for changes in support, placement, and communication.',
+        'Reduce stress by preparing for transitions early and deliberately.'
+      ],
+      quiz: lessonQuizQuestions['6.4'] || []
     },
     {
-      id: 13,
-      number: 13,
+      id: 14,
+      number: 14,
       moduleId: 3,
       title: '6.5. Money Management and Fraud Risk',
       description: 'Protecting against financial exploitation and managing financial affairs.',
@@ -546,7 +649,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 125,
       completed: false,
       isAvailable: false,
-      skills: ['Financial Protection', 'Fraud Prevention', 'Legal Safeguards']
+      skills: ['Financial Protection', 'Fraud Prevention', 'Legal Safeguards'],
+      keyObjectives: [
+        'Recognize common financial exploitation and fraud risks.',
+        'Use safeguards to protect money, accounts, and important documents.',
+        'Support trustworthy systems for managing finances and legal affairs.'
+      ],
+      quiz: lessonQuizQuestions['6.5'] || []
     }
   ] : isAdvancedResearchCourse ? [
     {
@@ -662,7 +771,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       skills: ['VR Simulation', 'Decision-Making', 'Scenario-Based Training']
     }
   ] : [
-    // Module 1: Foundational Knowledge and Early-Stage Care (Basic)
+    // Module 1: Foundational Knowledge and Early-Stage Care
     {
       id: 1,
       number: 1,
@@ -675,7 +784,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.1'),
       subsection: '1.1',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      section: 'Foundational Knowledge and Early-Stage Care',
       quiz: lesson11Questions
     },
     {
@@ -691,7 +800,7 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.2'),
       subsection: '1.2',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
+      section: 'Foundational Knowledge and Early-Stage Care',
       quiz: lesson12Questions
     },
     {
@@ -707,8 +816,14 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.3'),
       subsection: '1.3',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
-      skills: ['Communication', 'Verbal Techniques', 'Non-verbal Cues']
+      section: 'Foundational Knowledge and Early-Stage Care',
+      skills: ['Communication', 'Verbal Techniques', 'Non-verbal Cues'],
+      keyObjectives: [
+        'Identify communication barriers that increase confusion or frustration.',
+        'Use simple, calm, person-centered communication techniques.',
+        'Apply respectful verbal and non-verbal cues to support understanding.'
+      ],
+      quiz: lesson13Questions
     },
     {
       id: 4,
@@ -723,10 +838,16 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('1.4'),
       subsection: '1.4',
       category: courseCategory,
-      section: 'Foundational Knowledge and Early-Stage Care (Basic)',
-      skills: ['Early Planning', 'Independence', 'Future Care Planning']
+      section: 'Foundational Knowledge and Early-Stage Care',
+      skills: ['Early Planning', 'Independence', 'Future Care Planning'],
+      keyObjectives: [
+        'Identify practical steps for supporting independence at an early stage.',
+        'Plan ahead for future care needs while the person can still participate in decisions.',
+        'Use small supports that preserve confidence, routine, and dignity.'
+      ],
+      quiz: lessonQuizQuestions['1.4'] || []
     },
-    // Module 2: Intermediate Care Strategies: Daily Routines and Safety (Intermediate)
+    // Module 2: Daily Routines and Safety
     {
       id: 5,
       number: 5,
@@ -740,8 +861,14 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.1'),
       subsection: '2.1',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
-      skills: ['Daily Routines', 'Structure', 'Consistency']
+      section: 'Daily Routines and Safety',
+      skills: ['Daily Routines', 'Structure', 'Consistency'],
+      keyObjectives: [
+        'Build a predictable daily structure that reduces confusion.',
+        'Keep routines simple, repeatable, and easy to follow.',
+        'Use consistency to support calm and better functioning.'
+      ],
+      quiz: lessonQuizQuestions['2.1'] || []
     },
     {
       id: 6,
@@ -756,8 +883,14 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.2'),
       subsection: '2.2',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
-      skills: ['ADLs', 'Task Simplification', 'Assistance Techniques']
+      section: 'Daily Routines and Safety',
+      skills: ['ADLs', 'Task Simplification', 'Assistance Techniques'],
+      keyObjectives: [
+        'Break daily living tasks into smaller, manageable steps.',
+        'Support independence while still providing needed assistance.',
+        'Reduce frustration by simplifying instructions and setup.'
+      ],
+      quiz: lessonQuizQuestions['2.2'] || []
     },
     {
       id: 7,
@@ -772,8 +905,14 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.3'),
       subsection: '2.3',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
-      skills: ['Home Safety', 'Environmental Design', 'Risk Assessment']
+      section: 'Daily Routines and Safety',
+      skills: ['Home Safety', 'Environmental Design', 'Risk Assessment'],
+      keyObjectives: [
+        'Spot common home hazards that increase falls or confusion.',
+        'Make practical environmental changes to improve safety.',
+        'Use the home setting to support orientation and reduce risk.'
+      ],
+      quiz: lessonQuizQuestions['2.3'] || []
     },
     {
       id: 8,
@@ -788,10 +927,16 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('2.4'),
       subsection: '2.4',
       category: courseCategory,
-      section: 'Intermediate Care Strategies: Daily Routines and Safety (Intermediate)',
-      skills: ['BPSD', 'Behavioral Management', 'Intervention Strategies']
+      section: 'Daily Routines and Safety',
+      skills: ['BPSD', 'Behavioral Management', 'Intervention Strategies'],
+      keyObjectives: [
+        'Recognize common behavioral and psychological symptoms of dementia.',
+        'Identify likely triggers behind behavioral changes.',
+        'Choose calm, structured responses that reduce escalation.'
+      ],
+      quiz: lessonQuizQuestions['2.4'] || []
     },
-    // Module 3: Advanced Care and Specialized Interventions (Advanced)
+    // Module 3: Specialized Care and Intervention
     {
       id: 9,
       number: 9,
@@ -805,8 +950,14 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       isAvailable: isLessonAvailable('3.1'),
       subsection: '3.1',
       category: courseCategory,
-      section: 'Advanced Care and Specialized Interventions (Advanced)',
-      skills: ['Physical Care', 'Medical Management', 'Complex Needs']
+      section: 'Specialized Care and Intervention',
+      skills: ['Physical Care', 'Medical Management', 'Complex Needs'],
+      keyObjectives: [
+        'Assess advanced physical care needs and common complications.',
+        'Support safe mobility, transfers, and medical routines.',
+        'Coordinate care with the broader clinical team when needed.'
+      ],
+      quiz: lessonQuizQuestions['3.1'] || []
     },
     {
       id: 10,
@@ -819,7 +970,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 175,
       completed: false,
       isAvailable: false,
-      skills: ['Medical Ethics', 'Decision Making', 'Legal Considerations']
+      skills: ['Medical Ethics', 'Decision Making', 'Legal Considerations'],
+      keyObjectives: [
+        'Balance autonomy, safety, and family responsibilities in difficult decisions.',
+        'Understand how advance directives guide care choices.',
+        'Apply ethical reasoning to care decisions in advanced dementia.'
+      ],
+      quiz: lessonQuizQuestions['3.2'] || []
     },
     {
       id: 11,
@@ -832,7 +989,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 225,
       completed: false,
       isAvailable: false,
-      skills: ['End-of-Life Care', 'Family Support', 'Palliative Care']
+      skills: ['End-of-Life Care', 'Family Support', 'Palliative Care'],
+      keyObjectives: [
+        'Provide compassionate support during end-of-life transitions.',
+        'Recognize common emotional and practical caregiving needs at the end of life.',
+        'Prepare families for planning, communication, and comfort-focused care.'
+      ],
+      quiz: lessonQuizQuestions['3.3'] || []
     }
   ];
 
@@ -850,52 +1013,56 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
         </div>
       )}
 
-      <CourseHeader
-        course={mockCourse}
-        progress={courseProgress ? {
-          ...mockProgress,
-          completedLessons: courseProgress.completedSubsections?.length || 0,
-          progressPercentage: courseProgress.progress || 0
-        } : mockProgress}
-      />
+      <section className="course-page-overview-container">
+        <CourseHeader
+          course={mockCourse}
+          progress={courseProgress ? {
+            ...mockProgress,
+            completedLessons: courseProgress.completedSubsections?.length || 0,
+            progressPercentage: courseProgress.progress || 0
+          } : mockProgress}
+        />
+      </section>
 
-      <div className="course-content">
-        <div className="course-sidebar">
+      <div className="course-page-content">
+        <aside className="course-page-modules-container">
           <CourseNavigation
             modules={mockModules}
             activeModule={activeModule}
             onModuleChange={setActiveModule}
           />
-        </div>
+        </aside>
 
-        <div className="course-lessons">
-          <div className="lessons-header">
-            <h2>
-              {mockModules.find(m => m.id === activeModule)?.title || 'Lessons'}
-            </h2>
-            <div className="lessons-actions">
-              <button className="btn btn-secondary btn-small">
-                Download Materials
-              </button>
-              {courseProgress && (
-                <span className="progress-text">
-                  {courseProgress.completedSubsections?.length || 0} lessons completed
-                </span>
-              )}
+        <section className="course-page-lesson-container">
+          <div className="course-lessons">
+            <div className="lessons-header">
+              <h2>
+                {mockModules.find(m => m.id === activeModule)?.title || 'Lessons'}
+              </h2>
+              <div className="lessons-actions">
+                <button className="btn btn-secondary btn-small">
+                  Download Materials
+                </button>
+                {courseProgress && (
+                  <span className="progress-text">
+                    {courseProgress.completedSubsections?.length || 0} lessons completed
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="lessons-list">
+              {currentModuleLessons.map(lesson => (
+                <LessonItem
+                  key={lesson.id}
+                  lesson={lesson}
+                  courseProgress={mockProgress}
+                  onStartLesson={onStartLesson}
+                />
+              ))}
             </div>
           </div>
-
-          <div className="lessons-list">
-            {currentModuleLessons.map(lesson => (
-              <LessonItem
-                key={lesson.id}
-                lesson={lesson}
-                courseProgress={mockProgress}
-                onStartLesson={onStartLesson}
-              />
-            ))}
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );

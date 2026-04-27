@@ -22,12 +22,13 @@
 }
 
 .quote-text {
-  font-size: var(--font-size-md);
+  font-size: clamp(1.25rem, 2.2vw, 1.8rem);
   font-style: italic;
-  font-weight: var(--font-weight-bold);
-  color: #000000;
+  font-weight: var(--font-weight-semibold);
+  color: #1d4ed8;
   margin: 0;
   line-height: var(--line-height-relaxed);
+  letter-spacing: 0.01em;
 }
 
 .hero-title {
@@ -191,7 +192,7 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.course-content {
+.course-card-content {
   padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
 }
 
@@ -288,33 +289,33 @@
   .hero-title {
     font-size: var(--font-size-3xl);
   }
-  
+
   .hero-subtitle {
     font-size: var(--font-size-base);
   }
-  
+
   .hero-stats {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-md);
   }
-  
+
   .hero-stat {
     padding: var(--spacing-md);
   }
-  
+
   .stat-number {
     font-size: var(--font-size-2xl);
   }
-  
+
   .courses-grid {
     grid-template-columns: 1fr;
     gap: var(--spacing-lg);
   }
-  
+
   .category-filters {
     gap: var(--spacing-xs);
   }
-  
+
   .section-title {
     font-size: var(--font-size-2xl);
   }
