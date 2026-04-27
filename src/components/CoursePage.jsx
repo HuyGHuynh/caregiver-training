@@ -382,7 +382,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '4.1',
       category: courseCategory,
       section: 'Foundational Adjustments (Easy)',
-      skills: ['Activity Planning', 'Cognitive Assessment', 'Engagement Strategies']
+      skills: ['Activity Planning', 'Cognitive Assessment', 'Engagement Strategies'],
+      keyObjectives: [
+        'Match the amount of activity support to the person’s current abilities.',
+        'Recognize when an activity is too easy, too difficult, or just right.',
+        'Use meaningful engagement to reduce boredom and stress.'
+      ],
+      quiz: lessonQuizQuestions['4.1'] || []
     },
     {
       id: 2,
@@ -398,7 +404,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '4.2',
       category: courseCategory,
       section: 'Foundational Adjustments (Easy)',
-      skills: ['Advanced Communication', 'Middle-Stage Care', 'Verbal Techniques']
+      skills: ['Advanced Communication', 'Middle-Stage Care', 'Verbal Techniques'],
+      keyObjectives: [
+        'Use communication techniques that fit middle-stage dementia needs.',
+        'Keep instructions simple, concrete, and supportive.',
+        'Reduce confusion by matching tone, pace, and wording to the person.'
+      ],
+      quiz: lessonQuizQuestions['4.2'] || []
     },
     {
       id: 3,
@@ -414,7 +426,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '4.3',
       category: courseCategory,
       section: 'Foundational Adjustments (Easy)',
-      skills: ['Sundowning Management', 'Behavioral Patterns', 'Environmental Modifications']
+      skills: ['Sundowning Management', 'Behavioral Patterns', 'Environmental Modifications'],
+      keyObjectives: [
+        'Recognize patterns that contribute to sundowning.',
+        'Use routine and environment changes to reduce late-day distress.',
+        'Respond calmly when confusion or agitation increases later in the day.'
+      ],
+      quiz: lessonQuizQuestions['4.3'] || []
     },
     {
       id: 4,
@@ -430,7 +448,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '4.4',
       category: courseCategory,
       section: 'Foundational Adjustments (Easy)',
-      skills: ['Environment Design', 'Stress Reduction', 'Orientation Support']
+      skills: ['Environment Design', 'Stress Reduction', 'Orientation Support'],
+      keyObjectives: [
+        'Create predictable spaces that lower confusion and stress.',
+        'Use visual and environmental cues to support orientation.',
+        'Make small layout changes that improve safety and comfort.'
+      ],
+      quiz: lessonQuizQuestions['4.4'] || []
     },
     // Module 2: Active Behavioral Management
     {
@@ -447,7 +471,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '5.1',
       category: courseCategory,
       section: 'Active Behavioral Management',
-      skills: ['BPSD Framework', 'Trigger Identification', 'Response Planning']
+      skills: ['BPSD Framework', 'Trigger Identification', 'Response Planning'],
+      keyObjectives: [
+        'Use the trigger-behavior-response model to understand behavior.',
+        'Identify common triggers that precede distress or resistance.',
+        'Choose responses that reduce escalation and support safety.'
+      ],
+      quiz: lessonQuizQuestions['5.1'] || []
     },
     {
       id: 6,
@@ -463,7 +493,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '5.2',
       category: courseCategory,
       section: 'Active Behavioral Management',
-      skills: ['Care Resistance', 'Personal Care', 'Dignity Preservation']
+      skills: ['Care Resistance', 'Personal Care', 'Dignity Preservation'],
+      keyObjectives: [
+        'Understand why a person may resist bathing, dressing, or hygiene care.',
+        'Use respectful strategies to lower resistance during personal care.',
+        'Preserve dignity while completing necessary care tasks.'
+      ],
+      quiz: lessonQuizQuestions['5.2'] || []
     },
     {
       id: 7,
@@ -479,7 +515,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       subsection: '5.3',
       category: courseCategory,
       section: 'Active Behavioral Management',
-      skills: ['Wandering Management', 'Safety Planning', 'Environmental Safety']
+      skills: ['Wandering Management', 'Safety Planning', 'Environmental Safety'],
+      keyObjectives: [
+        'Identify wandering and elopement risks before they become emergencies.',
+        'Balance safety with the person’s need for movement and freedom.',
+        'Use practical safety planning to reduce risk while supporting autonomy.'
+      ],
+      quiz: lessonQuizQuestions['5.3'] || []
     },
     {
       id: 8,
@@ -492,7 +534,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 100,
       completed: false,
       isAvailable: false,
-      skills: ['Sleep Management', 'Circadian Rhythms', 'Behavioral Interventions']
+      skills: ['Sleep Management', 'Circadian Rhythms', 'Behavioral Interventions'],
+      keyObjectives: [
+        'Recognize how sleep disruption affects caregiving and behavior.',
+        'Use routines and environmental supports to improve sleep patterns.',
+        'Respond to day-night reversal with practical, low-stress interventions.'
+      ],
+      quiz: lessonQuizQuestions['5.4'] || []
     },
     {
       id: 9,
@@ -505,7 +553,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 150,
       completed: false,
       isAvailable: false,
-      skills: ['Incontinence Care', 'Dignity Preservation', 'Routine Management']
+      skills: ['Incontinence Care', 'Dignity Preservation', 'Routine Management'],
+      keyObjectives: [
+        'Manage toileting and incontinence needs with dignity and consistency.',
+        'Build routines that reduce accidents and stress.',
+        'Use practical supports to protect comfort, cleanliness, and respect.'
+      ],
+      quiz: lessonQuizQuestions['5.5'] || []
     },
     // Module 3: Complex Coordination & Risk
     {
@@ -519,7 +573,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 200,
       completed: false,
       isAvailable: false,
-      skills: ['Psychotic Symptoms', 'Validation Therapy', 'Redirection Techniques']
+      skills: ['Psychotic Symptoms', 'Validation Therapy', 'Redirection Techniques'],
+      keyObjectives: [
+        'Recognize hallucinations, delusions, and misidentification symptoms.',
+        'Use validation and redirection instead of confrontation.',
+        'Respond in a way that lowers fear and preserves trust.'
+      ],
+      quiz: lessonQuizQuestions['6.1'] || []
     },
     {
       id: 11,
@@ -532,7 +592,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 175,
       completed: false,
       isAvailable: false,
-      skills: ['Nutrition Management', 'Swallowing Safety', 'Hydration Monitoring']
+      skills: ['Nutrition Management', 'Swallowing Safety', 'Hydration Monitoring'],
+      keyObjectives: [
+        'Identify nutrition, hydration, and swallowing concerns in advanced care.',
+        'Support safer eating and drinking routines.',
+        'Know when to escalate swallowing or hydration issues for clinical support.'
+      ],
+      quiz: lessonQuizQuestions['6.2'] || []
     },
     {
       id: 12,
@@ -545,7 +611,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 150,
       completed: false,
       isAvailable: false,
-      skills: ['Contingency Planning', 'Emergency Preparedness', 'Care Coordination']
+      skills: ['Contingency Planning', 'Emergency Preparedness', 'Care Coordination'],
+      keyObjectives: [
+        'Create backup plans for times when the main caregiver is unavailable.',
+        'Prepare practical emergency arrangements before a crisis happens.',
+        'Coordinate caregiving responsibilities so support remains continuous.'
+      ],
+      quiz: lessonQuizQuestions['6.3'] || []
     },
     {
       id: 13,
@@ -558,7 +630,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 175,
       completed: false,
       isAvailable: false,
-      skills: ['Care Transitions', 'Level of Care Assessment', 'Transition Planning']
+      skills: ['Care Transitions', 'Level of Care Assessment', 'Transition Planning'],
+      keyObjectives: [
+        'Understand when a transition to a higher level of care may be needed.',
+        'Plan for changes in support, placement, and communication.',
+        'Reduce stress by preparing for transitions early and deliberately.'
+      ],
+      quiz: lessonQuizQuestions['6.4'] || []
     },
     {
       id: 14,
@@ -571,7 +649,13 @@ const CoursePage = ({ selectedCourse, onStartLesson = () => { }, progressEntries
       points: 125,
       completed: false,
       isAvailable: false,
-      skills: ['Financial Protection', 'Fraud Prevention', 'Legal Safeguards']
+      skills: ['Financial Protection', 'Fraud Prevention', 'Legal Safeguards'],
+      keyObjectives: [
+        'Recognize common financial exploitation and fraud risks.',
+        'Use safeguards to protect money, accounts, and important documents.',
+        'Support trustworthy systems for managing finances and legal affairs.'
+      ],
+      quiz: lessonQuizQuestions['6.5'] || []
     }
   ] : isAdvancedResearchCourse ? [
     {
